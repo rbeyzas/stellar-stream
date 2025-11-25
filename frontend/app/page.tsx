@@ -1,37 +1,47 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import WalletConnect from "../components/WalletConnect";
-import CreateStreamModal from "../components/CreateStreamModal";
-import StreamCard from "../components/StreamCard";
-import WithdrawModal from "../components/WithdrawModal";
-import { Plus, ArrowRight, Clock, DollarSign, RefreshCw, Download } from "lucide-react";
-import { motion } from "framer-motion";
-import { createStream, withdrawFromStream, cancelStream, getStream, getNextStreamId, XLM_TOKEN_ADDRESS } from "../lib/contract";
-import { Stream } from "../types";
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import WalletConnect from '../components/WalletConnect';
+import CreateStreamModal from '../components/CreateStreamModal';
+import StreamCard from '../components/StreamCard';
+import WithdrawModal from '../components/WithdrawModal';
+import { Plus, ArrowRight, Clock, DollarSign, RefreshCw, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  createStream,
+  withdrawFromStream,
+  cancelStream,
+  getStream,
+  getNextStreamId,
+  XLM_TOKEN_ADDRESS,
+} from '../lib/contract';
+import { Stream } from '../types';
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [maxWithdrawAmount, setMaxWithdrawAmount] = useState(0);
 
-  // Load streams from local storage on mount
+  // Load streams from local storage on mount, then auto-restore
   useEffect(() => {
     if (walletAddress) {
-      fetchStreams();
+      fetchStreams().then(() => {
+        // Auto-restore streams on first load to catch any streams where user is recipient
+        restoreStreams();
+      });
     }
   }, [walletAddress]);
 
   const fetchStreams = async () => {
     setIsLoading(true);
     try {
-      const storedIds = JSON.parse(localStorage.getItem("stream_ids") || "[]");
+      const storedIds = JSON.parse(localStorage.getItem('stream_ids') || '[]');
       const streamPromises = storedIds.map(async (id: string) => {
         try {
           const data = await getStream(id);
@@ -46,7 +56,7 @@ export default function Home() {
               deposit: Number(data.deposit) / 10000000,
               remainingBalance: Number(data.remaining_balance) / 10000000,
               withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
-              tokenAddress: data.token_address.toString()
+              tokenAddress: data.token_address.toString(),
             } as Stream;
           }
           return null;
@@ -57,16 +67,16 @@ export default function Home() {
       });
 
       const results = await Promise.all(streamPromises);
-      const activeStreams = results.filter(s => s !== null) as Stream[];
-      
+      const activeStreams = results.filter((s) => s !== null) as Stream[];
+
       // Update local storage to remove nulls (cancelled/invalid streams)
-      const activeIds = activeStreams.map(s => s.id);
-      localStorage.setItem("stream_ids", JSON.stringify(activeIds));
-      
+      const activeIds = activeStreams.map((s) => s.id);
+      localStorage.setItem('stream_ids', JSON.stringify(activeIds));
+
       setStreams(activeStreams);
     } catch (error) {
-      console.error("Failed to fetch streams", error);
-      toast.error("Failed to fetch streams");
+      console.error('Failed to fetch streams', error);
+      toast.error('Failed to fetch streams');
     } finally {
       setIsLoading(false);
     }
@@ -75,23 +85,27 @@ export default function Home() {
   const restoreStreams = async () => {
     if (!walletAddress) return;
     setIsLoading(true);
-    toast.info("Scanning blockchain for your streams...");
-    
+    toast.info('Scanning blockchain for your streams...');
+
     try {
       const nextId = await getNextStreamId();
       const foundStreams: Stream[] = [];
       const foundIds: string[] = [];
 
-      // Scan last 50 streams
-      const startId = Math.max(0, Number(nextId) - 50);
+      // Scan last 100 streams
+      const startId = Math.max(0, Number(nextId) - 100);
       const endId = Number(nextId);
 
       for (let i = startId; i < endId; i++) {
         try {
           const id = i.toString();
           const data = await getStream(id);
-          
-          if (data && (data.sender.toString() === walletAddress || data.recipient.toString() === walletAddress)) {
+
+          if (
+            data &&
+            (data.sender.toString() === walletAddress ||
+              data.recipient.toString() === walletAddress)
+          ) {
             foundStreams.push({
               id,
               sender: data.sender.toString(),
@@ -102,7 +116,7 @@ export default function Home() {
               deposit: Number(data.deposit) / 10000000,
               remainingBalance: Number(data.remaining_balance) / 10000000,
               withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
-              tokenAddress: data.token_address.toString()
+              tokenAddress: data.token_address.toString(),
             });
             foundIds.push(id);
           }
@@ -112,11 +126,11 @@ export default function Home() {
       }
 
       setStreams(foundStreams);
-      localStorage.setItem("stream_ids", JSON.stringify(foundIds));
+      localStorage.setItem('stream_ids', JSON.stringify(foundIds));
       toast.success(`Found ${foundStreams.length} streams!`);
     } catch (error) {
-      console.error("Failed to restore streams", error);
-      toast.error("Failed to restore streams");
+      console.error('Failed to restore streams', error);
+      toast.error('Failed to restore streams');
     } finally {
       setIsLoading(false);
     }
@@ -124,12 +138,12 @@ export default function Home() {
 
   const handleCreateStream = async (data: any) => {
     if (!walletAddress) return;
-    
+
     try {
       const nextId = await getNextStreamId();
       const streamId = nextId.toString();
 
-      const tokenAddress = data.token === "XLM" ? XLM_TOKEN_ADDRESS : data.token;
+      const tokenAddress = data.token === 'XLM' ? XLM_TOKEN_ADDRESS : data.token;
 
       await createStream(
         walletAddress,
@@ -137,40 +151,44 @@ export default function Home() {
         data.amount,
         tokenAddress,
         data.duration,
-        data.startTime
+        data.startTime,
       );
-      
+
       const newStream: Stream = {
         id: streamId,
         sender: walletAddress,
         recipient: data.recipient,
-        startTime: data.startTime === "now" ? Date.now() / 1000 : new Date(data.startTime).getTime() / 1000,
-        stopTime: (data.startTime === "now" ? Date.now() / 1000 : new Date(data.startTime).getTime() / 1000) + parseInt(data.duration),
+        startTime:
+          data.startTime === 'now' ? Date.now() / 1000 : new Date(data.startTime).getTime() / 1000,
+        stopTime:
+          (data.startTime === 'now'
+            ? Date.now() / 1000
+            : new Date(data.startTime).getTime() / 1000) + parseInt(data.duration),
         ratePerSecond: parseFloat(data.amount) / parseInt(data.duration),
         withdrawn: 0,
         deposit: parseFloat(data.amount),
         tokenAddress: tokenAddress,
-        isOptimistic: true 
+        isOptimistic: true,
       };
-      
+
       setStreams([...streams, newStream]);
-      
+
       // Save to local storage
-      const storedIds = JSON.parse(localStorage.getItem("stream_ids") || "[]");
+      const storedIds = JSON.parse(localStorage.getItem('stream_ids') || '[]');
       if (!storedIds.includes(streamId)) {
-        localStorage.setItem("stream_ids", JSON.stringify([...storedIds, streamId]));
+        localStorage.setItem('stream_ids', JSON.stringify([...storedIds, streamId]));
       }
 
       setIsModalOpen(false);
-      toast.success("Stream created successfully!");
+      toast.success('Stream created successfully!');
     } catch (error) {
-      console.error("Failed to create stream", error);
-      toast.error("Failed to create stream. See console for details.");
+      console.error('Failed to create stream', error);
+      toast.error('Failed to create stream. See console for details.');
     }
   };
 
   const handleWithdrawClick = (streamId: string) => {
-    const stream = streams.find(s => s.id === streamId);
+    const stream = streams.find((s) => s.id === streamId);
     if (!stream) return;
 
     // Calculate available amount
@@ -186,38 +204,42 @@ export default function Home() {
 
   const handleWithdrawSubmit = async (amount: string) => {
     if (!walletAddress || !selectedStreamId) return;
-    
+
     try {
       await withdrawFromStream(selectedStreamId, amount, walletAddress);
-      toast.success("Withdrawal successful!");
+      toast.success('Withdrawal successful!');
       setIsWithdrawModalOpen(false);
       fetchStreams(); // Refresh data
     } catch (error) {
-      console.error("Withdraw failed", error);
-      toast.error("Withdraw failed");
+      console.error('Withdraw failed', error);
+      toast.error('Withdraw failed');
     }
   };
 
   const handleCancel = async (streamId: string) => {
     if (!walletAddress) return;
-    
-    if (!confirm("Are you sure you want to cancel this stream? Any remaining funds will be returned to the sender.")) {
+
+    if (
+      !confirm(
+        'Are you sure you want to cancel this stream? Any remaining funds will be returned to the sender.',
+      )
+    ) {
       return;
     }
 
     try {
       await cancelStream(streamId, walletAddress);
-      setStreams(streams.filter(s => s.id !== streamId));
-      
+      setStreams(streams.filter((s) => s.id !== streamId));
+
       // Remove from local storage
-      const storedIds = JSON.parse(localStorage.getItem("stream_ids") || "[]");
+      const storedIds = JSON.parse(localStorage.getItem('stream_ids') || '[]');
       const newIds = storedIds.filter((id: string) => id !== streamId);
-      localStorage.setItem("stream_ids", JSON.stringify(newIds));
-      
-      toast.success("Stream cancelled successfully");
+      localStorage.setItem('stream_ids', JSON.stringify(newIds));
+
+      toast.success('Stream cancelled successfully');
     } catch (error) {
-      console.error("Cancel failed", error);
-      toast.error("Cancel failed. See console for details.");
+      console.error('Cancel failed', error);
+      toast.error('Cancel failed. See console for details.');
     }
   };
 
@@ -249,8 +271,8 @@ export default function Home() {
                 Real-time Payments <br /> on Stellar
               </h1>
               <p className="text-slate-400 text-xl max-w-2xl mx-auto mb-10">
-                Stream salaries, subscriptions, and grants by the second. 
-                No more waiting for payday.
+                Stream salaries, subscriptions, and grants by the second. No more waiting for
+                payday.
               </p>
               <div className="flex justify-center gap-4">
                 <button className="bg-white text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-slate-200 transition-colors">
@@ -267,15 +289,15 @@ export default function Home() {
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold">Your Streams</h2>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={fetchStreams}
                   disabled={isLoading}
                   className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+                  <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                   Refresh
                 </button>
-                <button 
+                <button
                   onClick={restoreStreams}
                   disabled={isLoading}
                   className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
@@ -283,7 +305,7 @@ export default function Home() {
                   <Download size={18} />
                   Restore
                 </button>
-                <button 
+                <button
                   onClick={() => setIsModalOpen(true)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                 >
@@ -294,7 +316,7 @@ export default function Home() {
             </div>
 
             {isLoading && streams.length === 0 ? (
-               <div className="text-center py-12 text-slate-500">Loading streams...</div>
+              <div className="text-center py-12 text-slate-500">Loading streams...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {streams.map((stream) => (
@@ -316,7 +338,9 @@ export default function Home() {
                   <Clock size={32} />
                 </div>
                 <h3 className="text-lg font-medium mb-2">No active streams</h3>
-                <p className="text-slate-500 mb-6">Create a stream to start sending funds in real-time.</p>
+                <p className="text-slate-500 mb-6">
+                  Create a stream to start sending funds in real-time.
+                </p>
               </div>
             )}
           </div>
@@ -328,7 +352,7 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateStream}
       />
-      
+
       <WithdrawModal
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}
