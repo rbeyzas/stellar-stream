@@ -14,7 +14,9 @@ import {
   cancelStream,
   getStream,
   getNextStreamId,
+  getStreamStatus,
   XLM_TOKEN_ADDRESS,
+  getErrorMessage,
 } from '../lib/contract';
 import { Stream } from '../types';
 
@@ -46,6 +48,15 @@ export default function Home() {
         try {
           const data = await getStream(id);
           if (data) {
+            // Fetch real status from contract
+            const status = await getStreamStatus(id);
+            console.log('🔄 fetchStreams - Stream data:', {
+              id,
+              remainingBalance: Number(data.remaining_balance) / 10000000,
+              status,
+              isCancelled: data.is_cancelled,
+            });
+
             return {
               id,
               sender: data.sender.toString(),
@@ -57,6 +68,8 @@ export default function Home() {
               remainingBalance: Number(data.remaining_balance) / 10000000,
               withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
               tokenAddress: data.token_address.toString(),
+              status: status || undefined,
+              isCancelled: data.is_cancelled || false,
             } as Stream;
           }
           return null;
@@ -79,6 +92,14 @@ export default function Home() {
       toast.error('Failed to fetch streams');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const clearAllStreams = () => {
+    if (confirm('⚠️ Bu işlem tüm stream kayıtlarını silecek. Emin misiniz?')) {
+      localStorage.removeItem('stream_ids');
+      setStreams([]);
+      toast.success('✅ Tüm stream kayıtları temizlendi');
     }
   };
 
@@ -106,6 +127,9 @@ export default function Home() {
             (data.sender.toString() === walletAddress ||
               data.recipient.toString() === walletAddress)
           ) {
+            // Fetch real status from contract
+            const status = await getStreamStatus(id);
+
             foundStreams.push({
               id,
               sender: data.sender.toString(),
@@ -117,6 +141,8 @@ export default function Home() {
               remainingBalance: Number(data.remaining_balance) / 10000000,
               withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
               tokenAddress: data.token_address.toString(),
+              status: status || undefined,
+              isCancelled: data.is_cancelled || false,
             });
             foundIds.push(id);
           }
@@ -180,10 +206,11 @@ export default function Home() {
       }
 
       setIsModalOpen(false);
-      toast.success('Stream created successfully!');
+      toast.success('✅ Stream başarıyla oluşturuldu!');
     } catch (error) {
       console.error('Failed to create stream', error);
-      toast.error('Failed to create stream. See console for details.');
+      const errorMsg = getErrorMessage(error);
+      toast.error(errorMsg);
     }
   };
 
@@ -206,13 +233,21 @@ export default function Home() {
     if (!walletAddress || !selectedStreamId) return;
 
     try {
+      console.log('💰 Starting withdrawal:', {
+        streamId: selectedStreamId,
+        amount,
+        wallet: walletAddress,
+      });
       await withdrawFromStream(selectedStreamId, amount, walletAddress);
-      toast.success('Withdrawal successful!');
+      toast.success('✅ Çekim başarılı!');
       setIsWithdrawModalOpen(false);
-      fetchStreams(); // Refresh data
+      console.log('🔄 Withdrawal successful, refreshing streams...');
+      await fetchStreams();
+      console.log('✅ Streams refreshed after withdrawal');
     } catch (error) {
       console.error('Withdraw failed', error);
-      toast.error('Withdraw failed');
+      const errorMsg = getErrorMessage(error);
+      toast.error(errorMsg);
     }
   };
 
@@ -221,7 +256,7 @@ export default function Home() {
 
     if (
       !confirm(
-        'Are you sure you want to cancel this stream? Any remaining funds will be returned to the sender.',
+        "Bu stream'i iptal etmek istediğinizden emin misiniz? Kalan fonlar gönderene iade edilecek.",
       )
     ) {
       return;
@@ -236,10 +271,11 @@ export default function Home() {
       const newIds = storedIds.filter((id: string) => id !== streamId);
       localStorage.setItem('stream_ids', JSON.stringify(newIds));
 
-      toast.success('Stream cancelled successfully');
+      toast.success('✅ Stream başarıyla iptal edildi');
     } catch (error) {
       console.error('Cancel failed', error);
-      toast.error('Cancel failed. See console for details.');
+      const errorMsg = getErrorMessage(error);
+      toast.error(errorMsg);
     }
   };
 
@@ -289,6 +325,12 @@ export default function Home() {
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold">Your Streams</h2>
               <div className="flex gap-3">
+                <button
+                  onClick={clearAllStreams}
+                  className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  Clear All
+                </button>
                 <button
                   onClick={fetchStreams}
                   disabled={isLoading}

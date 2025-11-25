@@ -1,3 +1,5 @@
+export type StreamStatus = 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
 export interface Stream {
   id: string;
   sender: string;
@@ -10,4 +12,6 @@ export interface Stream {
   withdrawn: number;
   tokenAddress: string;
   isOptimistic?: boolean;
+  status?: StreamStatus;
+  isCancelled?: boolean;
 }

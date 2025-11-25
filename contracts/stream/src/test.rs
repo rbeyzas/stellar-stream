@@ -43,6 +43,7 @@ fn test_stream_flow() {
     let stream = client.get_stream(&stream_id);
     assert_eq!(stream.deposit, 1000);
     assert_eq!(stream.remaining_balance, 1000);
+    assert_eq!(stream.is_cancelled, false);
 
     // Advance time to halfway
     env.ledger().with_mut(|l| {
@@ -60,9 +61,62 @@ fn test_stream_flow() {
     // Cancel stream
     client.cancel_stream(&stream_id);
 
+    // Verify stream is marked as cancelled
+    let stream = client.get_stream(&stream_id);
+    assert_eq!(stream.is_cancelled, true);
+    assert_eq!(stream.remaining_balance, 0);
+
     // Verify final balances (recipient should have 500, sender should have 500 returned)
     assert_eq!(token.balance(&recipient), 500);
     assert_eq!(token.balance(&sender), 500);
+}
+
+// 🧪 TEST: Stream status transitions correctly
+#[test]
+fn test_stream_status() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let token_admin = Address::generate(&env);
+    let token_contract = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_contract);
+
+    let sender = Address::generate(&env);
+    let recipient = Address::generate(&env);
+    token_admin_client.mint(&sender, &1000);
+
+    let contract_id = env.register_contract(None, StreamContract);
+    let client = StreamContractClient::new(&env, &contract_id);
+
+    let start_time = env.ledger().timestamp() + 100;
+    let stop_time = start_time + 1000;
+
+    let stream_id = client.create_stream(
+        &sender,
+        &recipient,
+        &1000,
+        &token_contract,
+        &start_time,
+        &stop_time,
+    );
+
+    // Status should be UPCOMING
+    let status = client.get_stream_status(&stream_id);
+    assert_eq!(status, StreamStatus::Upcoming);
+
+    // Advance to active period
+    env.ledger().with_mut(|l| {
+        l.timestamp = start_time + 500;
+    });
+
+    let status = client.get_stream_status(&stream_id);
+    assert_eq!(status, StreamStatus::Active);
+
+    // Cancel stream
+    client.cancel_stream(&stream_id);
+    
+    let status = client.get_stream_status(&stream_id);
+    assert_eq!(status, StreamStatus::Cancelled);
 }
 
 // 🧪 TEST: Invalid amount (zero or negative)
@@ -312,10 +366,10 @@ fn test_cancel_twice() {
     // Cancel once
     client.cancel_stream(&stream_id);
 
-    // Try to cancel again (should fail - stream not found)
+    // Try to cancel again (should fail - already cancelled)
     let result = client.try_cancel_stream(&stream_id);
     
-    assert_eq!(result, Err(Ok(StreamError::StreamNotFound)));
+    assert_eq!(result, Err(Ok(StreamError::AlreadyCanceled)));
 }
 
 // 🧪 TEST: Valid authorization - sender creates, recipient withdraws

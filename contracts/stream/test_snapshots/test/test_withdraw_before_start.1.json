@@ -298,6 +298,14 @@
                     },
                     {
                       "key": {
+                        "symbol": "is_cancelled"
+                      },
+                      "val": {
+                        "bool": false
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "rate_per_second"
                       },
                       "val": {
