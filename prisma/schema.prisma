@@ -1,0 +1,373 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// TASK (Core Event / Mission)
+// ============================================================================
+
+model Task {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId    String   @unique // Custom ID
+  ecosystemId String
+  
+  // Basic Info
+  title       String
+  description String
+  
+  // Location & Language
+  country  String?
+  city     String?
+  language String?
+  
+  // Budget & Payment
+  budgetUSDC   Float
+  streamConfig Json?  // StreamConfig
+  
+  // Dates
+  applicationDeadline DateTime?
+  eventStartDate      DateTime?
+  eventEndDate        DateTime?
+  
+  // Metadata
+  tags   String[]
+  status String   // TaskStatus enum
+  
+  // Soft Delete
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  kpiRequirements         KPIRequirement[]
+  deliverableRequirements DeliverableRequirement[]
+  applications            TaskApplication[]
+  assignments             Assignment[]
+  
+  // Indexes
+  @@index([ecosystemId])
+  @@index([status])
+  @@index([country])
+  @@index([eventStartDate])
+  @@index([createdAt])
+  @@index([tags])
+}
+
+// ============================================================================
+// KPI REQUIREMENT
+// ============================================================================
+
+model KPIRequirement {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  kpiId String @unique
+  
+  taskId String @db.ObjectId
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  type        String  // KPIType enum
+  label       String
+  minValue    Float
+  description String?
+  isRequired  Boolean @default(true)
+  weight      Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([taskId])
+  @@index([type])
+}
+
+// ============================================================================
+// DELIVERABLE REQUIREMENT
+// ============================================================================
+
+model DeliverableRequirement {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  deliverableId  String @unique
+  
+  taskId String @db.ObjectId
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  type        String  // DeliverableType enum
+  label       String
+  minCount    Int?
+  minWords    Int?
+  maxSizeMB   Float?
+  description String?
+  isRequired  Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([taskId])
+  @@index([type])
+}
+
+// ============================================================================
+// AMBASSADOR PROFILE
+// ============================================================================
+
+model AmbassadorProfile {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  ambassadorId  String @unique
+  userId        String
+  
+  // Profile Info
+  displayName String
+  bio         String?
+  avatarUrl   String?
+  
+  // Location
+  country  String?
+  city     String?
+  timezone String?
+  
+  // Skills & Experience
+  skills          String[]
+  languages       String[]
+  pastEventsCount Int      @default(0)
+  avgRating       Float?
+  totalEarned     Float?   @default(0)
+  
+  // Badges & Achievements
+  badges        String[]
+  verifications String[]
+  
+  // Social Links
+  socialLinks Json?
+  
+  // Status
+  isAvailable Boolean @default(true)
+  isVerified  Boolean @default(false)
+  
+  // Soft Delete
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  applications TaskApplication[]
+  assignments  Assignment[]
+  
+  // Indexes
+  @@index([userId])
+  @@index([country])
+  @@index([isAvailable])
+  @@index([isVerified])
+  @@index([avgRating])
+  @@index([skills])
+  @@index([languages])
+}
+
+// ============================================================================
+// TASK APPLICATION
+// ============================================================================
+
+model TaskApplication {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId String @unique
+  
+  taskId        String            @db.ObjectId
+  task          Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  ambassadorId  String            @db.ObjectId
+  ambassador    AmbassadorProfile @relation(fields: [ambassadorId], references: [id])
+  
+  // Application Content
+  coverLetter            String?
+  pastRelevantExperience String?
+  proposedApproach       String?
+  estimatedHours         Float?
+  
+  status          String  // ApplicationStatus enum
+  rejectionReason String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  assignment Assignment?
+  
+  // Indexes
+  @@index([taskId])
+  @@index([ambassadorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ASSIGNMENT
+// ============================================================================
+
+model Assignment {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  assignmentId String @unique
+  
+  taskId        String            @db.ObjectId
+  task          Task              @relation(fields: [taskId], references: [id])
+  
+  ambassadorId  String            @db.ObjectId
+  ambassador    AmbassadorProfile @relation(fields: [ambassadorId], references: [id])
+  
+  applicationId String          @unique @db.ObjectId
+  application   TaskApplication @relation(fields: [applicationId], references: [id])
+  
+  status String // AssignmentStatus enum
+  
+  // Lifecycle Timestamps
+  assignedAt   DateTime
+  startedAt    DateTime?
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  
+  // Cancellation
+  cancellationReason String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  submission Submission?
+  review     Review?
+  streamLink StreamLink?
+  
+  // Indexes
+  @@index([taskId])
+  @@index([ambassadorId])
+  @@index([status])
+  @@index([assignedAt])
+  @@index([submittedAt])
+}
+
+// ============================================================================
+// SUBMISSION
+// ============================================================================
+
+model Submission {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  submissionId String @unique
+  
+  assignmentId String     @unique @db.ObjectId
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  // KPI Results (embedded JSON)
+  kpiValues Json[] // Array of KPIValue objects
+  
+  // Deliverables (embedded JSON)
+  deliverables Json[] // Array of DeliverableUpload objects
+  
+  // Additional Info
+  notes String?
+  
+  // Version control
+  version           Int
+  previousVersionId String?
+  
+  submittedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  review Review?
+  
+  // Indexes
+  @@index([submittedAt])
+}
+
+// ============================================================================
+// REVIEW
+// ============================================================================
+
+model Review {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId String @unique
+  
+  assignmentId String     @unique @db.ObjectId
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  submissionId String     @unique @db.ObjectId
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  
+  decision   String // ReviewDecision enum
+  reviewerId String
+  
+  // KPI Check Results (embedded JSON)
+  kpiCheckResults Json[] // Array of KPICheckResult objects
+  
+  // Feedback
+  comments      String?
+  internalNotes String?
+  
+  // Scoring
+  overallScore Float?
+  
+  // Changes requested
+  changesRequested      String[]
+  resubmissionDeadline DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([decision])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// STREAM LINK (Bridge to StellarStream)
+// ============================================================================
+
+model StreamLink {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  streamLinkId String @unique
+  
+  assignmentId String     @unique @db.ObjectId
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  // Stellar Blockchain Info
+  stellarStreamId String? // ID in StellarStream contract
+  contractId      String  // Soroban contract address
+  
+  // Asset Info
+  assetCode   String
+  assetIssuer String?
+  
+  // Amount & Config
+  totalAmount  Float
+  config       Json  // StreamConfig
+  
+  // Status
+  status String // StreamStatus enum
+  
+  // Stellar Transaction Hashes
+  creationTxHash String?
+  cancelTxHash   String?
+  
+  // Withdrawals (embedded JSON)
+  withdrawals Json[] // Array of StreamWithdrawal objects
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([stellarStreamId])
+  @@index([status])
+  @@index([createdAt])
+}
