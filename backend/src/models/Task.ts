@@ -180,15 +180,7 @@ TaskSchema.index({ createdAt: -1 }); // For sorting by newest
 // Validation Middleware
 // ============================================================================
 TaskSchema.pre('save', function (next) {
-  // Validate date logic
-  if (this.eventEndDate <= this.eventStartDate) {
-    return next(new Error('eventEndDate must be after eventStartDate'));
-  }
-
-  if (this.applicationDeadline && this.applicationDeadline >= this.eventStartDate) {
-    return next(new Error('applicationDeadline must be before eventStartDate'));
-  }
-
+  // Simplified validation - no date checks since dates are now optional/automatic
   next();
 });
 

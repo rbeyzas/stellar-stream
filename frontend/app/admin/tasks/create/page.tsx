@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { CreateTaskInput, Task } from '@/lib/types/admin';
+import { CreateTaskInput } from '@/lib/types/admin';
 import { createTask, updateTask, getTask } from '@/lib/api/admin';
 import KPIRequirementFormRow from '@/components/admin/KPIRequirementFormRow';
 import DeliverableRequirementFormRow from '@/components/admin/DeliverableRequirementFormRow';
@@ -20,7 +20,7 @@ export default function TaskForm() {
   const [formData, setFormData] = useState<CreateTaskInput>({
     title: '',
     description: '',
-    country: '',
+    country: 'Global',
     city: '',
     language: 'en',
     budgetUSDC: 0,
@@ -40,6 +40,7 @@ export default function TaskForm() {
     if (isEdit) {
       loadTask();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, isEdit]);
 
   const loadTask = async () => {
@@ -50,15 +51,15 @@ export default function TaskForm() {
       setFormData({
         title: task.title,
         description: task.description,
-        country: task.country,
-        city: task.city || '',
+        country: 'Global',
+        city: '',
         language: task.language,
         budgetUSDC: task.budgetUSDC,
         applicationDeadline: task.applicationDeadline || '',
         eventStartDate: task.eventStartDate,
         eventEndDate: task.eventEndDate,
         tags: task.tags || [],
-        ecosystemId: task.ecosystemId || '',
+        ecosystemId: '',
         kpiRequirements: task.kpiRequirements.map(({ metric, target, description }) => ({
           metric,
           target,
@@ -150,10 +151,10 @@ export default function TaskForm() {
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+    if (tagInput.trim() && !(formData.tags || []).includes(tagInput.trim())) {
       setFormData({
         ...formData,
-        tags: [...formData.tags, tagInput.trim()],
+        tags: [...(formData.tags || []), tagInput.trim()],
       });
       setTagInput('');
     }
@@ -162,7 +163,7 @@ export default function TaskForm() {
   const removeTag = (tag: string) => {
     setFormData({
       ...formData,
-      tags: formData.tags.filter((t) => t !== tag),
+      tags: (formData.tags || []).filter((t) => t !== tag),
     });
   };
 
@@ -227,33 +228,6 @@ export default function TaskForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Language <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -283,65 +257,26 @@ export default function TaskForm() {
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ecosystem ID (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.ecosystemId}
-                  onChange={(e) => setFormData({ ...formData, ecosystemId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                />
-              </div>
             </div>
           </div>
 
           {/* Dates */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Dates</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Deadline</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline
-                </label>
-                <input
-                  type="date"
-                  value={formData.applicationDeadline}
-                  onChange={(e) =>
-                    setFormData({ ...formData, applicationDeadline: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Start Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.eventStartDate}
-                  onChange={(e) => setFormData({ ...formData, eventStartDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event End Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.eventEndDate}
-                  onChange={(e) => setFormData({ ...formData, eventEndDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Application Deadline (Optional)
+              </label>
+              <input
+                type="date"
+                value={formData.applicationDeadline}
+                onChange={(e) => setFormData({ ...formData, applicationDeadline: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: Set a deadline for ambassadors to apply. Leave empty if no deadline.
+              </p>
             </div>
           </div>
 
@@ -368,7 +303,7 @@ export default function TaskForm() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {formData.tags.map((tag) => (
+              {(formData.tags || []).map((tag) => (
                 <span
                   key={tag}
                   className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"

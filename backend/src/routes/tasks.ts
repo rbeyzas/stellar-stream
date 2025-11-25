@@ -13,7 +13,6 @@ import {
   generateTaskId,
   generateKPIRequirementId,
   generateDeliverableRequirementId,
-  validateTaskDates,
   parsePagination,
   buildDateRangeFilter,
   canApplyToTask,
@@ -33,54 +32,30 @@ router.post(
     const {
       title,
       description,
-      country,
-      city,
       language,
       budgetUSDC,
       applicationDeadline,
-      eventStartDate,
-      eventEndDate,
       tags = [],
-      ecosystemId,
       kpiRequirements = [],
       deliverableRequirements = [],
       publish = false, // Flag to publish immediately or save as draft
     } = req.body;
 
     // Validation
-    if (
-      !title ||
-      !description ||
-      !country ||
-      !language ||
-      !budgetUSDC ||
-      !eventStartDate ||
-      !eventEndDate
-    ) {
+    if (!title || !description || !language || !budgetUSDC) {
       validationError(res, 'Missing required fields', {
-        required: [
-          'title',
-          'description',
-          'country',
-          'language',
-          'budgetUSDC',
-          'eventStartDate',
-          'eventEndDate',
-        ],
+        required: ['title', 'description', 'language', 'budgetUSDC'],
       });
       return;
     }
 
-    // Validate dates
-    const dateValidation = validateTaskDates(
-      new Date(eventStartDate),
-      new Date(eventEndDate),
-      applicationDeadline ? new Date(applicationDeadline) : undefined,
-    );
-
-    if (!dateValidation.isValid) {
-      validationError(res, 'Invalid dates', { errors: dateValidation.errors });
-      return;
+    // Validate deadline if provided
+    if (applicationDeadline) {
+      const deadline = new Date(applicationDeadline);
+      if (isNaN(deadline.getTime())) {
+        validationError(res, 'Invalid application deadline');
+        return;
+      }
     }
 
     // Generate IDs for requirements
@@ -98,20 +73,20 @@ router.post(
       }),
     );
 
-    // Create task
+    // Create task with default values for removed fields
     const task = new Task({
       taskId: generateTaskId(),
       title,
       description,
-      country,
-      city,
+      country: 'Global',
+      city: undefined,
       language,
       budgetUSDC,
       applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : undefined,
-      eventStartDate: new Date(eventStartDate),
-      eventEndDate: new Date(eventEndDate),
+      eventStartDate: new Date(),
+      eventEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       tags,
-      ecosystemId,
+      ecosystemId: undefined,
       status: publish ? 'PUBLISHED' : 'DRAFT',
       kpiRequirements: kpiRequirementsWithIds,
       deliverableRequirements: deliverableRequirementsWithIds,
