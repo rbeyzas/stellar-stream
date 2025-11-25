@@ -6,6 +6,7 @@ import WalletConnect from '../components/WalletConnect';
 import CreateStreamModal from '../components/CreateStreamModal';
 import StreamCard from '../components/StreamCard';
 import WithdrawModal from '../components/WithdrawModal';
+import MyStreamsDashboard from '../components/MyStreamsDashboard';
 import { Plus, ArrowRight, Clock, DollarSign, RefreshCw, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
@@ -323,7 +324,7 @@ export default function Home() {
         ) : (
           <div>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold">Your Streams</h2>
+              <h2 className="text-3xl font-bold">My Streams Dashboard</h2>
               <div className="flex gap-3">
                 <button
                   onClick={clearAllStreams}
@@ -359,22 +360,7 @@ export default function Home() {
 
             {isLoading && streams.length === 0 ? (
               <div className="text-center py-12 text-slate-500">Loading streams...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {streams.map((stream) => (
-                  <StreamCard
-                    key={stream.id}
-                    stream={stream}
-                    userAddress={walletAddress}
-                    onWithdraw={handleWithdrawClick}
-                    onCancel={handleCancel}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!isLoading && streams.length === 0 && (
+            ) : streams.length === 0 ? (
               <div className="border-2 border-dashed border-slate-800 rounded-2xl p-12 text-center">
                 <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500">
                   <Clock size={32} />
@@ -384,6 +370,13 @@ export default function Home() {
                   Create a stream to start sending funds in real-time.
                 </p>
               </div>
+            ) : (
+              <MyStreamsDashboard
+                streams={streams}
+                walletAddress={walletAddress}
+                onWithdraw={handleWithdrawClick}
+                onCancel={handleCancel}
+              />
             )}
           </div>
         )}
