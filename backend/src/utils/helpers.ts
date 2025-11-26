@@ -10,6 +10,9 @@ export const generateAssignmentId = (): string => `asg_${nanoid(16)}`;
 export const generateSubmissionId = (): string => `sub_${nanoid(16)}`;
 export const generateKPIRequirementId = (): string => `kpi_${nanoid(12)}`;
 export const generateDeliverableRequirementId = (): string => `del_${nanoid(12)}`;
+export const generateStreamLinkId = (): string => `stream_${nanoid(16)}`;
+export const generateReviewId = (): string => `rev_${nanoid(16)}`;
+export const generateProfileId = (): string => `prof_${nanoid(16)}`;
 
 // ============================================================================
 // Date Validation Helpers

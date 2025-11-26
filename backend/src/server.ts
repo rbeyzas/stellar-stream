@@ -8,6 +8,7 @@ import tasksRouter from './routes/tasks';
 import applicationsRouter from './routes/applications';
 import assignmentsRouter from './routes/assignments';
 import submissionsRouter from './routes/submissions';
+import streamsRouter from './routes/streams';
 
 // ============================================================================
 // Express App Configuration
@@ -55,6 +56,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/applications', applicationsRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/submissions', submissionsRouter);
+app.use('/api/streams', streamsRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
