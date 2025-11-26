@@ -1,0 +1,229 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Wallet,
+  TrendingUp,
+  UserCheck,
+  Gift,
+  BarChart3,
+  FileText,
+} from 'lucide-react';
+import { UserRole } from '@/types/role';
+
+interface MenuItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: UserRole[];
+}
+
+const menuItems: MenuItem[] = [
+  // Admin menu items
+  {
+    name: 'Dashboard',
+    href: '/admin/dashboard',
+    icon: LayoutDashboard,
+    roles: ['admin'],
+  },
+  {
+    name: 'Ambassadors',
+    href: '/admin/ambassadors',
+    icon: Users,
+    roles: ['admin'],
+  },
+  {
+    name: 'Campaigns',
+    href: '/admin/campaigns',
+    icon: Gift,
+    roles: ['admin'],
+  },
+  {
+    name: 'Tasks',
+    href: '/admin/tasks',
+    icon: FileText,
+    roles: ['admin'],
+  },
+  {
+    name: 'Payments',
+    href: '/admin/payments',
+    icon: DollarSign,
+    roles: ['admin'],
+  },
+  {
+    name: 'Analytics',
+    href: '/admin/analytics',
+    icon: BarChart3,
+    roles: ['admin'],
+  },
+  {
+    name: 'Reports',
+    href: '/admin/reports',
+    icon: FileText,
+    roles: ['admin'],
+  },
+  {
+    name: 'Settings',
+    href: '/admin/settings',
+    icon: Settings,
+    roles: ['admin'],
+  },
+
+  // Ambassador menu items
+  {
+    name: 'Dashboard',
+    href: '/ambassador/dashboard',
+    icon: LayoutDashboard,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'My Campaigns',
+    href: '/ambassador/campaigns',
+    icon: Gift,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'Performance',
+    href: '/ambassador/performance',
+    icon: TrendingUp,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'Referrals',
+    href: '/ambassador/referrals',
+    icon: UserCheck,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'Earnings',
+    href: '/ambassador/earnings',
+    icon: DollarSign,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'Wallet',
+    href: '/ambassador/wallet',
+    icon: Wallet,
+    roles: ['ambassador'],
+  },
+  {
+    name: 'Settings',
+    href: '/ambassador/settings',
+    icon: Settings,
+    roles: ['ambassador'],
+  },
+];
+
+interface SidebarProps {
+  userRole: UserRole;
+  walletAddress?: string;
+}
+
+export default function Sidebar({ userRole, walletAddress }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  const filteredMenuItems = menuItems.filter((item) => item.roles.includes(userRole));
+
+  return (
+    <div
+      className={cn(
+        'relative flex flex-col h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 text-white transition-all duration-300',
+        collapsed ? 'w-20' : 'w-64',
+      )}
+    >
+      {/* Logo Section */}
+      <div className="flex items-center justify-between p-6 border-b border-purple-700/50">
+        {!collapsed && (
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">S</span>
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-pink-200">
+              Stellar Stream
+            </span>
+          </div>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-2 rounded-lg hover:bg-purple-700/50 transition-colors ml-auto"
+        >
+          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* User Role Badge */}
+      {!collapsed && (
+        <div className="px-6 py-4">
+          <div className="flex items-center space-x-3 p-3 bg-purple-800/50 rounded-lg">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">
+                {userRole === 'admin' ? 'A' : 'B'}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-medium capitalize">{userRole}</p>
+              {walletAddress && (
+                <p className="text-xs text-purple-300">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Menu */}
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+        {filteredMenuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200',
+                isActive
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg shadow-purple-500/50'
+                  : 'hover:bg-purple-700/50',
+                collapsed && 'justify-center',
+              )}
+            >
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span className="text-sm font-medium">{item.name}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Logout Button */}
+      <div className="p-4 border-t border-purple-700/50">
+        <button
+          onClick={() => {
+            // Handle logout
+            console.log('Logout clicked');
+          }}
+          className={cn(
+            'flex items-center space-x-3 px-4 py-3 w-full rounded-lg hover:bg-red-500/20 transition-colors',
+            collapsed && 'justify-center',
+          )}
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="text-sm font-medium">Logout</span>}
+        </button>
+      </div>
+    </div>
+  );
+}
