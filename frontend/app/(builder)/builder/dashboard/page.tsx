@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { DollarSign, TrendingUp, Users, Award } from 'lucide-react';
 
-export default function AmbassadorDashboard() {
+export default function BuilderDashboard() {
   const stats = [
     {
       title: 'Total Earnings',
@@ -40,7 +40,7 @@ export default function AmbassadorDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ambassador Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Builder Dashboard</h1>
           <p className="text-gray-500 mt-1">Welcome back! Here&apos;s your overview.</p>
         </div>
       </div>

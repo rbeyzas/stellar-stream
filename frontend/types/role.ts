@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'ambassador';
+export type UserRole = 'admin' | 'builder';
 
 export interface User {
   walletAddress: string;

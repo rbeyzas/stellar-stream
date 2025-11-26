@@ -11,7 +11,7 @@ export default function HomePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   // Geçici rol kontrolü fonksiyonu
-  const checkUserRole = (): 'admin' | 'ambassador' | null => {
+  const checkUserRole = (): 'admin' | 'builder' | null => {
     // TODO: Backend API'den rol bilgisi alınacak
     // Şimdilik demo için random rol atama
     return null; // Null döndürerek landing page'de kalmasını sağlıyoruz
@@ -26,8 +26,8 @@ export default function HomePage() {
 
       if (userRole === 'admin') {
         router.push('/admin/dashboard');
-      } else if (userRole === 'ambassador') {
-        router.push('/ambassador/dashboard');
+      } else if (userRole === 'builder') {
+        router.push('/builder/dashboard');
       }
     }
   }, [walletAddress, router]);

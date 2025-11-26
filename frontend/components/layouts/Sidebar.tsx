@@ -37,8 +37,8 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
-    name: 'Ambassadors',
-    href: '/admin/ambassadors',
+    name: 'Builders',
+    href: '/admin/builders',
     icon: Users,
     roles: ['admin'],
   },
@@ -52,6 +52,12 @@ const menuItems: MenuItem[] = [
     name: 'Tasks',
     href: '/admin/tasks',
     icon: FileText,
+    roles: ['admin'],
+  },
+  {
+    name: 'Applications',
+    href: '/admin/applications',
+    icon: UserCheck,
     roles: ['admin'],
   },
   {
@@ -79,48 +85,48 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
 
-  // Ambassador menu items
+  // Builder menu items
   {
     name: 'Dashboard',
-    href: '/ambassador/dashboard',
+    href: '/builder/dashboard',
     icon: LayoutDashboard,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'My Campaigns',
-    href: '/ambassador/campaigns',
+    href: '/builder/campaigns',
     icon: Gift,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'Performance',
-    href: '/ambassador/performance',
+    href: '/builder/performance',
     icon: TrendingUp,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'Referrals',
-    href: '/ambassador/referrals',
+    href: '/builder/referrals',
     icon: UserCheck,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'Earnings',
-    href: '/ambassador/earnings',
+    href: '/builder/earnings',
     icon: DollarSign,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'Wallet',
-    href: '/ambassador/wallet',
+    href: '/builder/wallet',
     icon: Wallet,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
   {
     name: 'Settings',
-    href: '/ambassador/settings',
+    href: '/builder/settings',
     icon: Settings,
-    roles: ['ambassador'],
+    roles: ['builder'],
   },
 ];
 

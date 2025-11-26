@@ -3,18 +3,18 @@
 import { motion } from 'framer-motion';
 import { Plus, Search, Filter } from 'lucide-react';
 
-export default function AmbassadorsPage() {
+export default function BuildersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ambassadors</h1>
-          <p className="text-gray-500 mt-1">Manage your ambassador network</p>
+          <h1 className="text-3xl font-bold text-gray-900">Builders</h1>
+          <p className="text-gray-500 mt-1">Manage your builder network</p>
         </div>
         <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all">
           <Plus className="w-5 h-5" />
-          <span>Add Ambassador</span>
+          <span>Add Builder</span>
         </button>
       </div>
 
@@ -24,7 +24,7 @@ export default function AmbassadorsPage() {
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search ambassadors..."
+            placeholder="Search builders..."
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
@@ -37,7 +37,7 @@ export default function AmbassadorsPage() {
       {/* Content */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-center h-96 text-gray-400">
-          No ambassadors yet. Click "Add Ambassador" to get started.
+          No builders yet. Click "Add Builder" to get started.
         </div>
       </div>
     </div>

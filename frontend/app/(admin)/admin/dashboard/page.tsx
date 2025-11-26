@@ -6,7 +6,7 @@ import { Users, DollarSign, TrendingUp, Activity } from 'lucide-react';
 export default function AdminDashboard() {
   const stats = [
     {
-      title: 'Total Ambassadors',
+      title: 'Total Builders',
       value: '0',
       change: '+0%',
       icon: Users,
@@ -82,10 +82,8 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Top Ambassadors</h2>
-          <div className="flex items-center justify-center h-64 text-gray-400">
-            No ambassadors yet
-          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Top Builders</h2>
+          <div className="flex items-center justify-center h-64 text-gray-400">No builders yet</div>
         </div>
       </div>
     </div>
