@@ -5,10 +5,6 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 ---
 
 ## 🎯 Features
-
-- **💸 Real-time Streaming**: Payments vest continuously per second
-- **🔐 Robust Security**: Comprehensive authorization and validation checks
-- **💰 Flexible Withdrawals**: Recipients can withdraw vested amounts anytime
 - **🛑 Cancellable**: Senders can cancel streams and recover remaining funds
 - **🌐 Multi-token Support**: Works with any Stellar asset (XLM, custom tokens)
 - **📱 Modern Frontend**: Built with Next.js 16 + Tailwind CSS + Framer Motion
@@ -37,26 +33,22 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 │   │   └── WithdrawModal.tsx
 │   ├── lib/
 │   │   ├── contract.ts        # Contract interaction
-│   │   └── stellar.ts         # Stellar SDK utilities
 │   └── package.json
 ├── Cargo.toml
 └── README.md
 ```
 
----
 
 ## 🔐 Security Features
 
 ### Authorization Checks
 
-- ✅ **`create_stream`**: Only sender can create streams from their address
 - ✅ **`withdraw`**: Only recipient can withdraw funds
 - ✅ **`cancel_stream`**: Only sender can cancel their own streams
 
 ### Validation Rules
 
 - ✅ **Amount Validation**: Deposit and withdraw amounts must be > 0
-- ✅ **Time Range Validation**: Stop time must be after start time
 - ✅ **Sender ≠ Recipient**: Prevents self-streaming
 - ✅ **Start Time Validation**: Cannot be more than 30 days in the past
 - ✅ **Overflow Protection**: All calculations use `checked_*` operations
@@ -66,10 +58,7 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 ### Error Handling
 
 The contract uses a comprehensive `StreamError` enum with 12 error types:
-
-```rust
 pub enum StreamError {
-    UnauthorizedSender = 1,
     UnauthorizedRecipient = 2,
     InvalidAmount = 3,
     InvalidTimeRange = 4,

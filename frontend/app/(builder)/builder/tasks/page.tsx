@@ -1,96 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Calendar, Users, TrendingUp, Filter } from 'lucide-react';
+import { Search, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { Task } from '@/types/task';
-
-// Mock data
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Ethereum Workshop at Stanford',
-    description:
-      'Host a 2-hour workshop introducing Ethereum development to computer science students',
-    type: 'Workshop',
-    location: 'Stanford University, CA',
-    date: '2025-02-15',
-    budget: 500,
-    status: 'Open',
-    kpis: [
-      { name: 'Attendees', target: '30+' },
-      { name: 'Social Media Reach', target: '5000+' },
-    ],
-    currentApplicants: 3,
-    maxApplicants: 1,
-    createdAt: '2025-01-15',
-  },
-  {
-    id: '2',
-    title: 'DeFi Hackathon - ETHGlobal',
-    description:
-      'Represent our protocol at ETHGlobal hackathon, provide mentorship and judge projects',
-    type: 'Hackathon',
-    location: 'San Francisco, CA',
-    date: '2025-03-20',
-    budget: 1500,
-    status: 'Open',
-    kpis: [
-      { name: 'Projects Mentored', target: '10+' },
-      { name: 'Developer Signups', target: '50+' },
-    ],
-    currentApplicants: 5,
-    maxApplicants: 2,
-    createdAt: '2025-01-20',
-  },
-  {
-    id: '3',
-    title: 'Web3 Developer Meetup',
-    description: 'Organize and host a local Web3 developer meetup with technical presentations',
-    type: 'Meetup',
-    location: 'New York, NY',
-    date: '2025-03-10',
-    budget: 400,
-    status: 'Open',
-    kpis: [
-      { name: 'Attendees', target: '40+' },
-      { name: 'New Community Members', target: '15+' },
-    ],
-    currentApplicants: 2,
-    maxApplicants: 1,
-    createdAt: '2025-01-18',
-  },
-  {
-    id: '4',
-    title: 'Blockchain Conference Booth',
-    description: 'Staff our booth at a major blockchain conference and engage with attendees',
-    type: 'Conference',
-    location: 'Miami, FL',
-    date: '2025-04-05',
-    budget: 800,
-    status: 'Open',
-    kpis: [
-      { name: 'Booth Visitors', target: '200+' },
-      { name: 'Email Signups', target: '100+' },
-    ],
-    currentApplicants: 4,
-    maxApplicants: 2,
-    createdAt: '2025-01-22',
-  },
-];
-
-const taskTypes = ['All Types', 'Workshop', 'Hackathon', 'Meetup', 'Conference'];
 
 export default function BrowseTasksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All Types');
-  const [showFilters, setShowFilters] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTasks = mockTasks.filter((task) => {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const res = await fetch('/api/tasks');
+        if (res.ok) {
+          const data = await res.json();
+          setTasks(data);
+        }
+      } catch (e) {
+        console.error('Error fetching tasks', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (task.location ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesType = selectedType === 'All Types' || task.type === selectedType;
@@ -107,6 +49,17 @@ export default function BrowseTasksPage() {
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -134,7 +87,15 @@ export default function BrowseTasksPage() {
           onChange={(e) => setSelectedType(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
         >
-          {taskTypes.map((type) => (
+          {[
+            'All Types',
+            'Workshop',
+            'Hackathon',
+            'Meetup',
+            'Part-time Job',
+            'Full-time Job',
+            'Hourly Job',
+          ].map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
@@ -179,24 +140,23 @@ export default function BrowseTasksPage() {
                   <MapPin className="w-4 h-4" />
                   <span>{task.location}</span>
                 </span>
-                <span className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {new Date(task.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                {task.date && (
+                  <span className="flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      {new Date(task.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
 
               {/* Applicants Info */}
-              <div className="flex items-center space-x-1 mb-4 text-sm text-gray-600">
-                <Users className="w-4 h-4" />
-                <span>
-                  {task.currentApplicants} applicants / {task.maxApplicants} max
-                </span>
+              <div className="mb-4 text-sm text-gray-600">
+                <span>{task.currentApplicants ?? 0} applicants</span>
               </div>
 
               {/* KPIs */}
@@ -206,7 +166,7 @@ export default function BrowseTasksPage() {
                   <span>Key Performance Indicators</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {task.kpis.map((kpi, idx) => (
+                  {(task.kpis ?? []).map((kpi, idx) => (
                     <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
                       {kpi.name}: {kpi.target}
                     </span>

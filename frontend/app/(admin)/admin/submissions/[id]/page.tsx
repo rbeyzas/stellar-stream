@@ -297,7 +297,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Amount (USD)
+                  Payment Amount (XLM)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">

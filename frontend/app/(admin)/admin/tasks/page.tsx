@@ -1,82 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Plus, Search, MapPin, Calendar, DollarSign, Users } from 'lucide-react';
+import { Plus, Search, MapPin, Calendar, DollarSign, Users, Loader2 } from 'lucide-react';
 import { Task } from '@/types/task';
 
-// Mock data - bu kısım daha sonra API'den gelecek
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Ethereum Workshop at Stanford',
-    type: 'Workshop',
-    status: 'Open',
-    location: 'Stanford University, CA',
-    date: '2025-02-15',
-    budget: 500,
-    maxApplicants: 1,
-    currentApplicants: 3,
-    description: 'Educational workshop about Ethereum development',
-    createdAt: '2024-11-20',
-    updatedAt: '2024-11-20',
-  },
-  {
-    id: '2',
-    title: 'DeFi Hackathon - ETHGlobal',
-    type: 'Hackathon',
-    status: 'Open',
-    location: 'San Francisco, CA',
-    date: '2025-03-20',
-    budget: 1500,
-    maxApplicants: 2,
-    currentApplicants: 5,
-    description: 'Build the future of DeFi',
-    createdAt: '2024-11-21',
-    updatedAt: '2024-11-21',
-  },
-  {
-    id: '3',
-    title: 'Web3 Community Meetup',
-    type: 'Meetup',
-    status: 'In Progress',
-    location: 'Austin, TX',
-    date: '2025-02-28',
-    budget: 300,
-    maxApplicants: 1,
-    currentApplicants: 2,
-    description: 'Monthly Web3 community gathering',
-    createdAt: '2024-11-19',
-    updatedAt: '2024-11-22',
-  },
-];
-
-const statusColors = {
+const statusColors: Record<string, string> = {
   Open: 'bg-green-100 text-green-800 border-green-200',
   'In Progress': 'bg-blue-100 text-blue-800 border-blue-200',
   Completed: 'bg-gray-100 text-gray-800 border-gray-200',
   Cancelled: 'bg-red-100 text-red-800 border-red-200',
+  Closed: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
-const typeColors = {
+const typeColors: Record<string, string> = {
   Workshop: 'bg-purple-50 text-purple-700',
   Hackathon: 'bg-blue-50 text-blue-700',
   Meetup: 'bg-pink-50 text-pink-700',
-  Conference: 'bg-orange-50 text-orange-700',
-  Other: 'bg-gray-50 text-gray-700',
+  'Part-time Job': 'bg-orange-50 text-orange-700',
+  'Full-time Job': 'bg-indigo-50 text-indigo-700',
+  'Hourly Job': 'bg-teal-50 text-teal-700',
 };
 
 export default function TasksPage() {
-  const [tasks] = useState<Task[]>(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('/api/tasks');
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+        }
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
   const filteredTasks = tasks.filter(
     (task) =>
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (task.location && task.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
       task.type.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -150,29 +136,31 @@ export default function TasksPage() {
 
               {/* Card Body */}
               <div className="p-6 space-y-3">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm line-clamp-1">{task.location}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Calendar className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm">
-                    {new Date(task.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                </div>
+                {task.location && (
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm line-clamp-1">{task.location}</span>
+                  </div>
+                )}
+                {task.date && (
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">
+                      {new Date(task.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center space-x-2 text-gray-600">
                   <DollarSign className="w-4 h-4 flex-shrink-0" />
                   <span className="text-sm font-semibold">${task.budget}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Users className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm">
-                    {task.currentApplicants} applicants / {task.maxApplicants} max
-                  </span>
+                  <span className="text-sm">{task.currentApplicants} applicants</span>
                 </div>
               </div>
 

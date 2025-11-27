@@ -3,9 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, MapPin, Calendar, DollarSign, Users, FileText } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  MapPin,
+  Calendar,
+  DollarSign,
+  FileText,
+  Plus,
+  X,
+  Target,
+} from 'lucide-react';
 import Link from 'next/link';
-import { TaskType, TaskStatus } from '@/types/task';
+import { TaskType, TaskStatus, KPI } from '@/types/task';
 
 export default function CreateTaskPage() {
   const router = useRouter();
@@ -18,23 +28,50 @@ export default function CreateTaskPage() {
     location: '',
     date: '',
     budget: '',
-    maxApplicants: '',
     description: '',
-    requirements: '',
   });
+
+  const [kpis, setKpis] = useState<KPI[]>([]);
+  const [newKpi, setNewKpi] = useState({ name: '', target: '', description: '' });
+
+  const requiresLocationDate = ['Workshop', 'Hackathon', 'Meetup'].includes(formData.type);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: API call to create task
-    console.log('Creating task:', formData);
+    try {
+      const createdByEmail =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('userEmail') || 'admin@local.test'
+          : 'admin@local.test';
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          budget: parseFloat(formData.budget),
+          kpis: kpis.map((kpi) => ({
+            name: kpi.name,
+            target: kpi.target,
+            description: kpi.description,
+          })),
+          createdByEmail,
+        }),
+      });
 
-    // Simulate API call
-    setTimeout(() => {
+      if (response.ok) {
+        router.push('/admin/tasks');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      alert('Failed to create task');
+    } finally {
       setIsSubmitting(false);
-      router.push('/admin/tasks');
-    }, 1000);
+    }
   };
 
   const handleChange = (
@@ -42,6 +79,17 @@ export default function CreateTaskPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const addKpi = () => {
+    if (newKpi.name && newKpi.target) {
+      setKpis([...kpis, { ...newKpi, id: Date.now().toString() }]);
+      setNewKpi({ name: '', target: '', description: '' });
+    }
+  };
+
+  const removeKpi = (id: string) => {
+    setKpis(kpis.filter((kpi) => kpi.id !== id));
   };
 
   return (
@@ -84,7 +132,7 @@ export default function CreateTaskPage() {
                   onChange={handleChange}
                   required
                   placeholder="e.g., Ethereum Workshop at Stanford"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                 />
               </div>
 
@@ -98,13 +146,14 @@ export default function CreateTaskPage() {
                     value={formData.type}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                   >
                     <option value="Workshop">Workshop</option>
                     <option value="Hackathon">Hackathon</option>
                     <option value="Meetup">Meetup</option>
-                    <option value="Conference">Conference</option>
-                    <option value="Other">Other</option>
+                    <option value="Part-time Job">Part-time Job</option>
+                    <option value="Full-time Job">Full-time Job</option>
+                    <option value="Hourly Job">Hourly Job</option>
                   </select>
                 </div>
 
@@ -115,7 +164,7 @@ export default function CreateTaskPage() {
                     value={formData.status}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                   >
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -127,115 +176,163 @@ export default function CreateTaskPage() {
             </div>
           </div>
 
-          {/* Location and Date */}
-          <div className="pt-6 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-              <MapPin className="w-5 h-5" />
-              <span>Location & Date</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  required
-                  placeholder="e.g., Stanford University, CA"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+          {/* Location and Date - Only for Events */}
+          {requiresLocationDate && (
+            <div className="pt-6 border-t border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                <MapPin className="w-5 h-5" />
+                <span>Location & Date</span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    required={requiresLocationDate}
+                    placeholder="e.g., Stanford University, CA"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Date *</span>
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>Date *</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required={requiresLocationDate}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Budget and Applicants */}
+          {/* Budget */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
               <DollarSign className="w-5 h-5" />
-              <span>Budget & Applicants</span>
+              <span>Budget</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget (USD) *
-                </label>
-                <input
-                  type="number"
-                  name="budget"
-                  value={formData.budget}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="500"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Budget (XLM) *</label>
+              <input
+                type="number"
+                name="budget"
+                value={formData.budget}
+                onChange={handleChange}
+                required
+                min="0"
+                step="0.01"
+                placeholder="500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+              />
+            </div>
+          </div>
 
+          {/* KPIs */}
+          <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Key Performance Indicators (KPIs)</span>
+            </h2>
+
+            {/* KPI List */}
+            {kpis.length > 0 && (
+              <div className="space-y-3 mb-4">
+                {kpis.map((kpi) => (
+                  <div
+                    key={kpi.id}
+                    className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">
+                        {kpi.name} - Target: {kpi.target}
+                      </div>
+                      {kpi.description && (
+                        <div className="text-sm text-gray-600 mt-1">{kpi.description}</div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeKpi(kpi.id!)}
+                      className="ml-4 p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add New KPI */}
+            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">KPI Name</label>
+                  <input
+                    type="text"
+                    value={newKpi.name}
+                    onChange={(e) => setNewKpi({ ...newKpi, name: e.target.value })}
+                    placeholder="e.g., Number of attendees"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target</label>
+                  <input
+                    type="text"
+                    value={newKpi.target}
+                    onChange={(e) => setNewKpi({ ...newKpi, target: e.target.value })}
+                    placeholder="e.g., 50+ people"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
-                  <span>Max Applicants *</span>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Optional)
                 </label>
                 <input
-                  type="number"
-                  name="maxApplicants"
-                  value={formData.maxApplicants}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  placeholder="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  type="text"
+                  value={newKpi.description}
+                  onChange={(e) => setNewKpi({ ...newKpi, description: e.target.value })}
+                  placeholder="Additional context about this KPI"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-400"
                 />
               </div>
+              <button
+                type="button"
+                onClick={addKpi}
+                disabled={!newKpi.name || !newKpi.target}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add KPI</span>
+              </button>
             </div>
           </div>
 
           {/* Description */}
           <div className="pt-6 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Description & Requirements</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="Describe the task, goals, and what participants can expect..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Requirements (one per line)
-                </label>
-                <textarea
-                  name="requirements"
-                  value={formData.requirements}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="Experience with Ethereum&#10;Public speaking skills&#10;Available for full event duration"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Describe the task, goals, and what participants can expect..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+              />
             </div>
           </div>
 
