@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   Users,
+  User,
   DollarSign,
   Settings,
   LogOut,
@@ -18,6 +19,8 @@ import {
   Gift,
   BarChart3,
   FileText,
+  ListTodo,
+  FileCheck,
 } from 'lucide-react';
 import { UserRole } from '@/types/role';
 
@@ -61,6 +64,12 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
+    name: 'Submissions',
+    href: '/admin/submissions',
+    icon: FileText,
+    roles: ['admin'],
+  },
+  {
     name: 'Payments',
     href: '/admin/payments',
     icon: DollarSign,
@@ -93,15 +102,27 @@ const menuItems: MenuItem[] = [
     roles: ['builder'],
   },
   {
-    name: 'My Campaigns',
-    href: '/builder/campaigns',
-    icon: Gift,
+    name: 'Browse Tasks',
+    href: '/builder/tasks',
+    icon: ListTodo,
     roles: ['builder'],
   },
   {
-    name: 'Performance',
-    href: '/builder/performance',
-    icon: TrendingUp,
+    name: 'My Applications',
+    href: '/builder/my-applications',
+    icon: FileCheck,
+    roles: ['builder'],
+  },
+  {
+    name: 'My Tasks',
+    href: '/builder/my-tasks',
+    icon: ListTodo,
+    roles: ['builder'],
+  },
+  {
+    name: 'My Campaigns',
+    href: '/builder/campaigns',
+    icon: Gift,
     roles: ['builder'],
   },
   {
@@ -120,6 +141,12 @@ const menuItems: MenuItem[] = [
     name: 'Wallet',
     href: '/builder/wallet',
     icon: Wallet,
+    roles: ['builder'],
+  },
+  {
+    name: 'Profile',
+    href: '/builder/profile',
+    icon: User,
     roles: ['builder'],
   },
   {
