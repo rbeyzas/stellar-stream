@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import Sidebar from '@/components/layouts/Sidebar';
 
 interface BuilderLayoutProps {
@@ -8,12 +8,18 @@ interface BuilderLayoutProps {
 }
 
 export default function BuilderLayout({ children }: BuilderLayoutProps) {
-  // Bu kısım daha sonra gerçek kullanıcı bilgisi ile değiştirilecek
   const walletAddress = 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+
+  const userEmail = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userEmail') || '';
+    }
+    return '';
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar userRole="builder" walletAddress={walletAddress} />
+      <Sidebar userRole="builder" walletAddress={walletAddress} userEmail={userEmail} />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-6">{children}</div>
       </main>

@@ -38,3 +38,5 @@ contracts/stream/target/
 contracts/hello-world/target/
 **/*.wasm
 .soroban/
+
+/generated/prisma

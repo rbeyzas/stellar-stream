@@ -24,6 +24,9 @@ export default function SignInPage() {
 
     // Simulate API call
     setTimeout(() => {
+      // Save email to localStorage
+      localStorage.setItem('userEmail', email);
+
       // Check if email contains "admin"
       if (email.toLowerCase().includes('admin')) {
         // Redirect to admin dashboard

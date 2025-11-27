@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import WalletConnect from '@/components/WalletConnect';
 import {
   LayoutDashboard,
   Users,
@@ -17,7 +18,6 @@ import {
   TrendingUp,
   UserCheck,
   Gift,
-  BarChart3,
   FileText,
   ListTodo,
   FileCheck,
@@ -75,18 +75,12 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     roles: ['admin'],
   },
-  {
-    name: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-    roles: ['admin'],
-  },
-  {
-    name: 'Reports',
-    href: '/admin/reports',
-    icon: FileText,
-    roles: ['admin'],
-  },
+  // {
+  //   name: 'Reports',
+  //   href: '/admin/reports',
+  //   icon: FileText,
+  //   roles: ['admin'],
+  // },
   {
     name: 'Settings',
     href: '/admin/settings',
@@ -160,10 +154,16 @@ const menuItems: MenuItem[] = [
 interface SidebarProps {
   userRole: UserRole;
   walletAddress?: string;
+  userEmail?: string;
 }
 
-export default function Sidebar({ userRole, walletAddress }: SidebarProps) {
+export default function Sidebar({
+  userRole,
+  walletAddress: initialWalletAddress,
+  userEmail,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | undefined>(initialWalletAddress);
   const pathname = usePathname();
 
   const filteredMenuItems = menuItems.filter((item) => item.roles.includes(userRole));
@@ -204,8 +204,9 @@ export default function Sidebar({ userRole, walletAddress }: SidebarProps) {
                 {userRole === 'admin' ? 'A' : 'B'}
               </span>
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium capitalize">{userRole}</p>
+              {userEmail && <p className="text-xs text-purple-300 truncate">{userEmail}</p>}
               {walletAddress && (
                 <p className="text-xs text-purple-300">
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
@@ -242,7 +243,19 @@ export default function Sidebar({ userRole, walletAddress }: SidebarProps) {
       </nav>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-purple-700/50">
+      <div className="p-4 border-t border-purple-700/50 space-y-3">
+        {/* Wallet Connect */}
+        {!collapsed && (
+          <div className="px-2">
+            <WalletConnect
+              onConnect={(address) => {
+                setWalletAddress(address);
+                console.log('Wallet connected:', address);
+              }}
+            />
+          </div>
+        )}
+
         <button
           onClick={() => {
             // Handle logout

@@ -186,16 +186,3 @@ export default function EarningsPage() {
     </div>
   );
 }
-          <p className="text-3xl font-bold text-gray-900">0 XLM</p>
-          <p className="text-sm text-gray-500 mt-2">Pending payout</p>
-        </div>
-      </div>
-
-      {/* Earnings History */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Earnings History</h2>
-        <div className="flex items-center justify-center h-96 text-gray-400">No earnings yet</div>
-      </div>
-    </div>
-  );
-}
