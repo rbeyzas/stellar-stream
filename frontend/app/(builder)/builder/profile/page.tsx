@@ -1,18 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, DollarSign, CheckCircle } from 'lucide-react';
+import { DollarSign, CheckCircle, Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: 'Marcus Rodriguez',
-    email: 'ambassador1@example.com',
-    walletAddress: '0x9876543210fedcba',
-    bio: 'Blockchain educator and community builder with 3+ years of experience in Web3. Passionate about making decentralized technology accessible to everyone.',
-    location: 'San Francisco, CA',
-    twitter: '@yourusername',
+    fullName: '',
+    email: '',
+    walletAddress: '',
+    bio: '',
+    location: '',
+    twitter: '',
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          console.error('No user email found');
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`/api/profile?email=${encodeURIComponent(userEmail)}`);
+        if (response.ok) {
+          const user = await response.json();
+          setFormData({
+            fullName: user.name || '',
+            email: user.email || '',
+            walletAddress: user.walletAddress || '',
+            bio: user.bio || '',
+            location: user.location || '',
+            twitter: user.twitter || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -21,17 +55,66 @@ export default function ProfilePage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Profile updated:', formData);
-    // TODO: API call to update profile
+    setSaving(true);
+    
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        console.error('No user email found');
+        return;
+      }
+
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          name: formData.fullName,
+          walletAddress: formData.walletAddress,
+          bio: formData.bio,
+          location: formData.location,
+          twitter: formData.twitter,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setFormData({
+          fullName: updatedUser.name || '',
+          email: updatedUser.email || '',
+          walletAddress: updatedUser.walletAddress || '',
+          bio: updatedUser.bio || '',
+          location: updatedUser.location || '',
+          twitter: updatedUser.twitter || '',
+        });
+        alert('Profile updated successfully!');
+      } else {
+        alert('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const stats = {
-    memberSince: 'Jan 2024',
     tasksCompleted: 12,
     totalEarnings: 8450,
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,13 +147,6 @@ export default function ProfilePage() {
 
           {/* Stats */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-sm text-gray-600 flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span>Member Since</span>
-              </span>
-              <span className="text-sm font-semibold text-gray-900">{stats.memberSince}</span>
-            </div>
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-sm text-gray-600 flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4" />
@@ -108,7 +184,7 @@ export default function ProfilePage() {
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                 />
               </div>
               <div>
@@ -118,7 +194,7 @@ export default function ProfilePage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                 />
               </div>
             </div>
@@ -131,7 +207,7 @@ export default function ProfilePage() {
                 name="walletAddress"
                 value={formData.walletAddress}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900"
               />
             </div>
 
@@ -143,7 +219,7 @@ export default function ProfilePage() {
                 value={formData.bio}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-gray-900"
               />
             </div>
 
@@ -155,7 +231,7 @@ export default function ProfilePage() {
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
               />
             </div>
 
@@ -170,7 +246,7 @@ export default function ProfilePage() {
                 value={formData.twitter}
                 onChange={handleChange}
                 placeholder="@yourusername"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
               />
             </div>
 
@@ -178,21 +254,30 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-3 pt-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                disabled={saving}
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                Save Changes
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{saving ? 'Saving...' : 'Save Changes'}</span>
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setFormData({
-                    fullName: 'Marcus Rodriguez',
-                    email: 'ambassador1@example.com',
-                    walletAddress: '0x9876543210fedcba',
-                    bio: 'Blockchain educator and community builder with 3+ years of experience in Web3. Passionate about making decentralized technology accessible to everyone.',
-                    location: 'San Francisco, CA',
-                    twitter: '@yourusername',
-                  });
+                onClick={async () => {
+                  const userEmail = localStorage.getItem('userEmail');
+                  if (userEmail) {
+                    const response = await fetch(`/api/profile?email=${encodeURIComponent(userEmail)}`);
+                    if (response.ok) {
+                      const user = await response.json();
+                      setFormData({
+                        fullName: user.name || '',
+                        email: user.email || '',
+                        walletAddress: user.walletAddress || '',
+                        bio: user.bio || '',
+                        location: user.location || '',
+                        twitter: user.twitter || '',
+                      });
+                    }
+                  }
                 }}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >

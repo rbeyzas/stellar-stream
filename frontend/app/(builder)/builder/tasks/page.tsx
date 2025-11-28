@@ -11,22 +11,39 @@ export default function BrowseTasksPage() {
   const [selectedType, setSelectedType] = useState('All Types');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [appliedTaskIds, setAppliedTaskIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/tasks');
-        if (res.ok) {
-          const data = await res.json();
-          setTasks(data);
+        // Fetch tasks
+        const tasksRes = await fetch('/api/tasks');
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          setTasks(tasksData);
+        }
+
+        // Fetch user's applications
+        const builderEmail = localStorage.getItem('userEmail');
+        if (builderEmail) {
+          const applicationsRes = await fetch(
+            `/api/applications?builderEmail=${encodeURIComponent(builderEmail)}`,
+          );
+          if (applicationsRes.ok) {
+            const applicationsData = await applicationsRes.json();
+            const taskIds = new Set<string>(
+              applicationsData.map((app: { task: { id: string } }) => app.task.id),
+            );
+            setAppliedTaskIds(taskIds);
+          }
         }
       } catch (e) {
-        console.error('Error fetching tasks', e);
+        console.error('Error fetching data', e);
       } finally {
         setLoading(false);
       }
     };
-    fetchTasks();
+    fetchData();
   }, []);
 
   const filteredTasks = tasks.filter((task) => {
@@ -176,11 +193,20 @@ export default function BrowseTasksPage() {
 
               {/* Actions */}
               <div className="flex items-center space-x-3">
-                <Link href={`/builder/tasks/${task.id}`} className="flex-1">
-                  <button className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium">
-                    Apply Now
+                {appliedTaskIds.has(task.id) ? (
+                  <button
+                    disabled
+                    className="flex-1 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed text-sm font-medium"
+                  >
+                    Already Applied
                   </button>
-                </Link>
+                ) : (
+                  <Link href={`/builder/tasks/${task.id}`} className="flex-1">
+                    <button className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium">
+                      Apply Now
+                    </button>
+                  </Link>
+                )}
                 <Link href={`/builder/tasks/${task.id}`}>
                   <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
                     View Details

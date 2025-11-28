@@ -1,60 +1,107 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, MapPin, Calendar, DollarSign, Users, FileText } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Users,
+  FileText,
+  Plus,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
-import { TaskType, TaskStatus } from '@/types/task';
+import { TaskType, TaskStatus, KPI } from '@/types/task';
 
-// Mock data - bu kısım daha sonra API'den gelecek
-const mockTask = {
-  id: '1',
-  title: 'Ethereum Workshop at Stanford',
-  type: 'Workshop' as TaskType,
-  status: 'Open' as TaskStatus,
-  location: 'Stanford University, CA',
-  date: '2025-02-15',
-  budget: 500,
-  maxApplicants: 1,
-  currentApplicants: 3,
-  description: 'Educational workshop about Ethereum development',
-  requirements:
-    'Experience with Ethereum\nPublic speaking skills\nAvailable for full event duration',
-  createdAt: '2024-11-20',
-  updatedAt: '2024-11-20',
-};
+interface FormKPI {
+  name: string;
+  target: string;
+}
 
 export default function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<FormKPI[]>([{ name: '', target: '' }]);
 
-  // TODO: Fetch task data from API using id
   const [formData, setFormData] = useState({
-    title: mockTask.title,
-    type: mockTask.type,
-    status: mockTask.status,
-    location: mockTask.location,
-    date: mockTask.date,
-    budget: mockTask.budget.toString(),
-    maxApplicants: mockTask.maxApplicants.toString(),
-    description: mockTask.description || '',
-    requirements: mockTask.requirements || '',
+    title: '',
+    type: 'Workshop' as TaskType,
+    status: 'Open' as TaskStatus,
+    location: '',
+    date: '',
+    budget: '',
+    maxApplicants: '',
+    description: '',
   });
+
+  useEffect(() => {
+    const fetchTask = async () => {
+      try {
+        const res = await fetch(`/api/tasks/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setFormData({
+            title: data.title,
+            type: data.type,
+            status: data.status,
+            location: data.location || '',
+            date: data.date || '',
+            budget: data.budget?.toString() || '',
+            maxApplicants: data.maxApplicants?.toString() || '',
+            description: data.description || '',
+          });
+          if (data.kpis && data.kpis.length > 0) {
+            setKpis(data.kpis.map((kpi: KPI) => ({ name: kpi.name, target: kpi.target })));
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching task', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTask();
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: API call to update task
-    console.log('Updating task:', id, formData);
+    try {
+      const builderEmail = localStorage.getItem('userEmail');
+      const updatedData = {
+        ...formData,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        maxApplicants: formData.maxApplicants ? parseInt(formData.maxApplicants) : null,
+        location: formData.location || null,
+        date: formData.date || null,
+        createdByEmail: builderEmail,
+        kpis: kpis.filter((kpi) => kpi.name && kpi.target),
+      };
 
-    // Simulate API call
-    setTimeout(() => {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (res.ok) {
+        router.push('/admin/tasks');
+      } else {
+        alert('Failed to update task');
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert('Failed to update task');
+    } finally {
       setIsSubmitting(false);
-      router.push('/admin/tasks');
-    }, 1000);
+    }
   };
 
   const handleChange = (
@@ -63,6 +110,31 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  const addKPI = () => {
+    setKpis([...kpis, { name: '', target: '' }]);
+  };
+
+  const removeKPI = (index: number) => {
+    setKpis(kpis.filter((_, i) => i !== index));
+  };
+
+  const handleKPIChange = (index: number, field: 'name' | 'target', value: string) => {
+    const newKpis = [...kpis];
+    newKpis[index][field] = value;
+    setKpis(newKpis);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading task...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -229,7 +301,7 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
 
           {/* Description */}
           <div className="pt-6 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Description & Requirements</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
@@ -239,23 +311,53 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
                   onChange={handleChange}
                   rows={4}
                   placeholder="Describe the task, goals, and what participants can expect..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                 />
               </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Requirements (one per line)
-                </label>
-                <textarea
-                  name="requirements"
-                  value={formData.requirements}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="Experience with Ethereum&#10;Public speaking skills&#10;Available for full event duration"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+          {/* KPIs */}
+          <div className="pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Key Performance Indicators</h2>
+              <button
+                type="button"
+                onClick={addKPI}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Add KPI</span>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {kpis.map((kpi, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    value={kpi.name}
+                    onChange={(e) => handleKPIChange(index, 'name', e.target.value)}
+                    placeholder="KPI Name (e.g., Attendees)"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={kpi.target}
+                    onChange={(e) => handleKPIChange(index, 'target', e.target.value)}
+                    placeholder="Target (e.g., 50+)"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  />
+                  {kpis.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeKPI(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -10,6 +10,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id },
       include: {
         kpis: true,
+        applications: {
+          include: {
+            builder: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+        },
         _count: {
           select: { applications: true },
         },
@@ -20,13 +31,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const taskWithCount = {
+    const taskWithApplicants = {
       ...task,
       currentApplicants: task._count.applications,
       date: task.date?.toISOString(),
+      applications: task.applications.map((app) => ({
+        id: app.id,
+        taskId: app.taskId,
+        builderId: app.builderId,
+        builderEmail: app.builder.email,
+        builderName: app.builder.name,
+        coverLetter: app.coverLetter,
+        status: app.status,
+        createdAt: app.createdAt.toISOString(),
+      })),
     };
 
-    return NextResponse.json(taskWithCount);
+    return NextResponse.json(taskWithApplicants);
   } catch (error) {
     console.error('Error fetching task:', error);
     return NextResponse.json({ error: 'Failed to fetch task' }, { status: 500 });

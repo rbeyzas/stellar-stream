@@ -1,103 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, User } from 'lucide-react';
-import { Application } from '@/types/application';
 
-// Mock data
-const mockApplications: Application[] = [
-  {
-    id: '1',
-    applicantId: 'user1',
-    applicantName: 'Marcus Rodriguez',
-    applicantEmail: 'ambassador1@example.com',
-    applicantAvatar: 'MR',
-    taskId: '1',
-    taskTitle: 'Ethereum Workshop at Stanford',
-    taskType: 'Workshop',
-    taskLocation: 'Stanford University, CA',
-    taskDate: '2025-02-15',
-    taskBudget: 500,
-    coverLetter: 'I am excited to apply for the Ethereum Workshop at Stanford...',
-    status: 'Pending',
-    appliedAt: '2024-11-25',
-  },
-  {
-    id: '2',
-    applicantId: 'user2',
-    applicantName: 'Emily Zhang',
-    applicantEmail: 'ambassador2@example.com',
-    applicantAvatar: 'EZ',
-    taskId: '2',
-    taskTitle: 'DeFi Hackathon - ETHGlobal',
-    taskType: 'Hackathon',
-    taskLocation: 'San Francisco, CA',
-    taskDate: '2025-03-20',
-    taskBudget: 1500,
-    coverLetter: 'With my background in DeFi development...',
-    status: 'Pending',
-    appliedAt: '2024-11-24',
-  },
-  {
-    id: '3',
-    applicantId: 'user3',
-    applicantName: 'Alex Kim',
-    applicantEmail: 'ambassador3@example.com',
-    applicantAvatar: 'AK',
-    taskId: '3',
-    taskTitle: 'Web3 Community Meetup',
-    taskType: 'Meetup',
-    taskLocation: 'Austin, TX',
-    taskDate: '2025-02-28',
-    taskBudget: 300,
-    coverLetter: 'I would love to organize this meetup...',
-    status: 'Approved',
-    appliedAt: '2024-11-26',
-    reviewedAt: '2024-11-27',
-  },
-  {
-    id: '4',
-    applicantId: 'user4',
-    applicantName: 'Jordan Lee',
-    applicantEmail: 'ambassador4@example.com',
-    applicantAvatar: 'JL',
-    taskId: '4',
-    taskTitle: 'Blockchain Workshop Series',
-    taskType: 'Workshop',
-    taskLocation: 'Online',
-    taskDate: '2025-03-05',
-    taskBudget: 800,
-    coverLetter: 'My experience in blockchain education...',
-    status: 'Rejected',
-    appliedAt: '2024-11-23',
-    reviewedAt: '2024-11-25',
-  },
-];
-
-const statusColors = {
-  Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Approved: 'bg-green-100 text-green-800 border-green-200',
-  Rejected: 'bg-red-100 text-red-800 border-red-200',
-  'Under Review': 'bg-blue-100 text-blue-800 border-blue-200',
-};
+interface Application {
+  id: string;
+  coverLetter: string;
+  status: string;
+  createdAt: string;
+  reviewNotes: string | null;
+  reviewedAt: string | null;
+  task: {
+    id: string;
+    title: string;
+    type: string;
+    location: string | null;
+    date: string | null;
+    budget: number | null;
+  };
+  builder: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
 
 export default function ApplicationsPage() {
-  const [activeTab, setActiveTab] = useState<'Pending' | 'Reviewed'>('Pending');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
-  const pendingApplications = mockApplications.filter((app) => app.status === 'Pending');
-  const reviewedApplications = mockApplications.filter((app) => app.status !== 'Pending');
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch('/api/applications');
+        if (res.ok) {
+          const data = await res.json();
+          setApplications(data);
+        }
+      } catch (e) {
+        console.error('Error loading applications', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+  }, []);
 
-  const currentApplications = activeTab === 'Pending' ? pendingApplications : reviewedApplications;
+  const statusColors = {
+    Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    Approved: 'bg-green-100 text-green-800 border-green-200',
+    Rejected: 'bg-red-100 text-red-800 border-red-200',
+  };
 
-  const filteredApplications = currentApplications.filter(
-    (app) =>
-      app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.taskTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.applicantEmail.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredApplications = applications.filter((app) => {
+    const matchesSearch =
+      app.builder.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.builder.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.task.title.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'All' || app.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      const parts = name.split(' ');
+      return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
+    }
+    return email.slice(0, 2);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading applications...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -107,53 +106,37 @@ export default function ApplicationsPage() {
         <p className="text-gray-500 mt-1">Review and manage builder applications</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center space-x-6 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('Pending')}
-          className={`pb-3 px-1 font-medium text-sm transition-colors relative ${
-            activeTab === 'Pending' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Pending ({pendingApplications.length})
-          {activeTab === 'Pending' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('Reviewed')}
-          className={`pb-3 px-1 font-medium text-sm transition-colors relative ${
-            activeTab === 'Reviewed' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Reviewed ({reviewedApplications.length})
-          {activeTab === 'Reviewed' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-          )}
-        </button>
-      </div>
-
-      {/* Search */}
+      {/* Filters */}
       <div className="flex items-center space-x-4">
         <div className="flex-1 relative">
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search applications..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
           />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+        >
+          <option value="All">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
       </div>
 
       {/* Applications List */}
       {filteredApplications.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center text-gray-400">
-            {searchQuery
-              ? 'No applications found matching your search'
-              : `No ${activeTab.toLowerCase()} applications`}
+            {searchTerm || statusFilter !== 'All'
+              ? 'No applications found matching your filters'
+              : 'No applications yet'}
           </div>
         </div>
       ) : (
@@ -171,8 +154,8 @@ export default function ApplicationsPage() {
                 <div className="flex items-start space-x-4 flex-1">
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">
-                      {application.applicantAvatar}
+                    <span className="text-white font-bold text-lg uppercase">
+                      {getInitials(application.builder.name, application.builder.email)}
                     </span>
                   </div>
 
@@ -180,44 +163,52 @@ export default function ApplicationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-1">
                       <h3 className="text-lg font-bold text-gray-900">
-                        {application.applicantName}
+                        {application.builder.name || application.builder.email}
                       </h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                          statusColors[application.status]
+                          statusColors[application.status as keyof typeof statusColors]
                         }`}
                       >
                         {application.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 mb-3">{application.applicantEmail}</p>
+                    <p className="text-sm text-gray-500 mb-3">{application.builder.email}</p>
 
                     {/* Applied For */}
                     <div className="mb-3">
                       <p className="text-sm font-semibold text-gray-700 mb-1">Applied for:</p>
-                      <p className="text-base font-medium text-gray-900">{application.taskTitle}</p>
+                      <p className="text-base font-medium text-gray-900">
+                        {application.task.title}
+                      </p>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center space-x-1">
-                          <User className="w-4 h-4" />
-                          <span>{application.taskLocation}</span>
-                        </span>
-                        <span>
-                          {new Date(application.taskDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        <span className="font-semibold text-green-600">
-                          ${application.taskBudget}
-                        </span>
+                        {application.task.location && (
+                          <span className="flex items-center space-x-1">
+                            <User className="w-4 h-4" />
+                            <span>{application.task.location}</span>
+                          </span>
+                        )}
+                        {application.task.date && (
+                          <span>
+                            {new Date(application.task.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
+                        {application.task.budget && (
+                          <span className="font-semibold text-green-600">
+                            ${application.task.budget}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Applied Date */}
                     <p className="text-xs text-gray-500">
                       {application.status === 'Pending' ? 'Applied' : 'Reviewed'}{' '}
-                      {application.status === 'Pending' ? '2 days ago' : '1 day ago'}
+                      {formatDate(application.createdAt)}
                     </p>
                   </div>
                 </div>

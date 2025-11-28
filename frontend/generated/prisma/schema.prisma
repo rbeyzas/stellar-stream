@@ -18,7 +18,7 @@ model User {
   id            String   @id @default(cuid())
   email         String   @unique
   name          String?
-  role          String   // 'admin' or 'builder'
+  role          String // 'admin' or 'builder'
   walletAddress String?
   bio           String?
   location      String?
@@ -26,24 +26,24 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tasks       Task[]
+  tasks        Task[]
   applications Application[]
   submissions  Submission[]
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String
-  type        String   // 'Workshop', 'Hackathon', 'Meetup', 'Part-time Job', 'Full-time Job', 'Hourly Job'
-  location    String?  // Only for Workshop, Hackathon, Meetup
+  type        String // 'Workshop', 'Hackathon', 'Meetup', 'Part-time Job', 'Full-time Job', 'Hourly Job'
+  location    String? // Only for Workshop, Hackathon, Meetup
   date        DateTime? // Only for Workshop, Hackathon, Meetup
   budget      Float
-  status      String   @default("Open") // 'Open', 'Closed', 'In Progress'
+  status      String    @default("Open") // 'Open', 'Closed', 'In Progress'
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   kpis         KPI[]
   applications Application[]
@@ -54,46 +54,46 @@ model Task {
 }
 
 model KPI {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   target      String
   description String?
   taskId      String
-  task        Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
 
 model Application {
-  id           String   @id @default(cuid())
-  taskId       String
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  builderId    String
-  builder      User     @relation(fields: [builderId], references: [id])
-  coverLetter  String
-  status       String   @default("Pending") // 'Pending', 'Approved', 'Rejected'
-  reviewNotes  String?
-  reviewedAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(cuid())
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  builderId   String
+  builder     User      @relation(fields: [builderId], references: [id])
+  coverLetter String
+  status      String    @default("Pending") // 'Pending', 'Approved', 'Rejected'
+  reviewNotes String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([taskId, builderId])
   @@index([status])
 }
 
 model Submission {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   taskId      String
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
   builderId   String
-  builder     User     @relation(fields: [builderId], references: [id])
+  builder     User      @relation(fields: [builderId], references: [id])
   workSummary String
-  status      String   @default("Pending Review") // 'Pending Review', 'Approved', 'Rejected', 'Revision Requested'
+  status      String    @default("Pending Review") // 'Pending Review', 'Approved', 'Rejected', 'Revision Requested'
   reviewNotes String?
   amount      Float?
   reviewedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   kpiResults      KPIResult[]
   supportingFiles SupportingFile[]

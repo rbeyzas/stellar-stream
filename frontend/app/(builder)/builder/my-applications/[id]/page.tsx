@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MapPin, Calendar, DollarSign, CheckCircle, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, MapPin, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
@@ -31,12 +31,9 @@ interface Application {
 
 export default function ApplicationDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -46,7 +43,6 @@ export default function ApplicationDetailPage() {
         if (res.ok) {
           const data = await res.json();
           setApplication(data);
-          setReviewNotes(data.reviewNotes || '');
         }
       } catch (e) {
         console.error('Error loading application', e);
@@ -57,48 +53,10 @@ export default function ApplicationDetailPage() {
     fetchApplication();
   }, [id]);
 
-  const handleUpdateStatus = async (newStatus: string) => {
-    if (!application) return;
-
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: newStatus,
-          reviewNotes: reviewNotes.trim() || null,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setApplication(data);
-        alert(`Application ${newStatus.toLowerCase()} successfully!`);
-        router.push('/admin/applications');
-      } else {
-        alert('Failed to update application status');
-      }
-    } catch (e) {
-      console.error('Error updating application', e);
-      alert('Failed to update application status');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const statusColors = {
     Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     Approved: 'bg-green-100 text-green-800 border-green-200',
     Rejected: 'bg-red-100 text-red-800 border-red-200',
-  };
-
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      const parts = name.split(' ');
-      return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
-    }
-    return email.slice(0, 2);
   };
 
   if (loading) {
@@ -116,9 +74,9 @@ export default function ApplicationDetailPage() {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <p className="text-gray-500">Application not found</p>
-        <Link href="/admin/applications" className="inline-block mt-4">
+        <Link href="/builder/my-applications" className="inline-block mt-4">
           <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border hover:bg-gray-200">
-            Back to Applications
+            Back to My Applications
           </button>
         </Link>
       </div>
@@ -130,14 +88,14 @@ export default function ApplicationDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/admin/applications">
+          <Link href="/builder/my-applications">
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Application Review</h1>
-            <p className="text-gray-500 mt-1">Review builder application details</p>
+            <p className="text-gray-500 mt-1">View your application details and status</p>
           </div>
         </div>
         <span
@@ -149,26 +107,16 @@ export default function ApplicationDetailPage() {
         </span>
       </div>
 
-      {/* Builder Info Card */}
+      {/* Application Info */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Builder Information</h2>
-        <div className="flex items-start space-x-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-2xl uppercase">
-              {getInitials(application.builder.name, application.builder.email)}
-            </span>
-          </div>
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
-              {application.builder.name || 'No name provided'}
-            </h3>
-            <p className="text-sm text-gray-600">{application.builder.email}</p>
-            <p className="text-xs text-gray-500 mt-2">
-              Applied{' '}
+            <p className="text-sm text-purple-800 font-medium">Application Submitted</p>
+            <p className="text-lg font-bold text-purple-900">
               {new Date(application.createdAt).toLocaleDateString('en-US', {
                 month: 'long',
                 day: 'numeric',
@@ -176,6 +124,18 @@ export default function ApplicationDetailPage() {
               })}
             </p>
           </div>
+          {application.reviewedAt && (
+            <div className="text-right">
+              <p className="text-sm text-purple-800 font-medium">Reviewed On</p>
+              <p className="text-lg font-bold text-purple-900">
+                {new Date(application.reviewedAt).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -235,77 +195,72 @@ export default function ApplicationDetailPage() {
         transition={{ delay: 0.2 }}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Cover Letter</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Your Cover Letter</h2>
         <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
           {application.coverLetter}
         </p>
       </motion.div>
 
-      {/* Review Notes (if already reviewed) */}
+      {/* Admin Feedback (if reviewed) */}
       {application.reviewNotes && application.status !== 'Pending' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gray-50 rounded-xl border border-gray-200 p-6"
+          className={`rounded-xl border p-6 ${
+            application.status === 'Approved'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-red-50 border-red-200'
+          }`}
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Review Notes</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Reviewed{' '}
-            {application.reviewedAt &&
-              new Date(application.reviewedAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-          </p>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Admin Feedback</h2>
           <p className="text-gray-700 whitespace-pre-wrap">{application.reviewNotes}</p>
         </motion.div>
       )}
 
-      {/* Review Actions (only for Pending) */}
+      {/* Status Message */}
       {application.status === 'Pending' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          className="bg-yellow-50 border border-yellow-200 rounded-xl p-6"
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Review Decision</h2>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="reviewNotes" className="block text-sm font-medium text-gray-900 mb-2">
-                Review Notes (Optional)
-              </label>
-              <textarea
-                id="reviewNotes"
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="Add any feedback or notes about this application..."
-                className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed resize-none"
-              />
-            </div>
+          <p className="text-yellow-800 font-medium">
+            Your application is pending review. You&apos;ll be notified once a decision is made.
+          </p>
+        </motion.div>
+      )}
 
-            <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-              <button
-                onClick={() => handleUpdateStatus('Rejected')}
-                disabled={isSubmitting}
-                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                <X className="w-5 h-5" />
-                <span>Reject Application</span>
-              </button>
-              <button
-                onClick={() => handleUpdateStatus('Approved')}
-                disabled={isSubmitting}
-                className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                <CheckCircle className="w-5 h-5" />
-                <span>Approve Application</span>
-              </button>
-            </div>
-          </div>
+      {application.status === 'Approved' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-green-50 border border-green-200 rounded-xl p-6"
+        >
+          <p className="text-green-800 font-medium">
+            Congratulations! Your application has been approved. Check your email for next steps.
+          </p>
+        </motion.div>
+      )}
+
+      {application.status === 'Rejected' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-red-50 border border-red-200 rounded-xl p-6"
+        >
+          <p className="text-red-800 font-medium">
+            Unfortunately, your application was not selected for this task. Keep browsing for more
+            opportunities!
+          </p>
+          <Link href="/builder/tasks" className="inline-block mt-4">
+            <button className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all">
+              Browse More Tasks
+            </button>
+          </Link>
         </motion.div>
       )}
     </div>
