@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Stream, StreamStatus } from '../types';
 import StreamCard from './StreamCard';
-import { TrendingUp, TrendingDown, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, Filter, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { XLM_TOKEN_ADDRESS } from '../lib/contract';
 
 interface MyStreamsDashboardProps {
@@ -57,7 +57,7 @@ export default function MyStreamsDashboard({
   onWithdraw,
   onCancel,
 }: MyStreamsDashboardProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('sender');
+  const [activeTab, setActiveTab] = useState<TabType>('recipient');
   const [statusFilter, setStatusFilter] = useState<FilterType>('ALL');
 
   // Filter streams based on active tab
@@ -122,122 +122,129 @@ export default function MyStreamsDashboard({
   }, [tabFilteredStreams]);
 
   return (
-    <div className="space-y-6">
-      {/* Summary Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-8">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Total Paid */}
-        <div className="glass rounded-xl p-6 border-l-4 border-red-500">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-slate-400 text-sm font-medium">Total Paid (as Sender)</h3>
-            <TrendingDown className="text-red-400" size={20} />
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <ArrowUpRight size={64} className="text-red-500" />
+          </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-500 text-sm font-medium">Total Paid (as Sender)</h3>
+            <div className="bg-red-50 p-2 rounded-lg">
+              <TrendingDown className="text-red-500" size={20} />
+            </div>
           </div>
           {Object.entries(summary.tokenSummary).map(([token, amounts]) =>
             amounts.paid > 0 ? (
               <div key={token} className="mb-1">
-                <p className="text-2xl font-bold text-white">
-                  {amounts.paid.toFixed(7)} <span className="text-lg text-slate-400">{token}</span>
+                <p className="text-3xl font-bold text-gray-900">
+                  {amounts.paid.toFixed(7)} <span className="text-lg text-gray-400 font-medium">{token}</span>
                 </p>
               </div>
             ) : null,
           )}
-          {summary.totalPaid === 0 && <p className="text-2xl font-bold text-slate-600">0 XLM</p>}
-          <p className="text-xs text-slate-500 mt-2">
+          {summary.totalPaid === 0 && <p className="text-3xl font-bold text-gray-900">0.0000000 <span className="text-lg text-gray-400 font-medium">XLM</span></p>}
+          <p className="text-xs text-gray-400 mt-2 font-medium">
             {streams.filter((s) => s.sender === walletAddress).length} stream(s)
           </p>
         </div>
 
         {/* Total Earned */}
-        <div className="glass rounded-xl p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-slate-400 text-sm font-medium">Total Earned (as Recipient)</h3>
-            <TrendingUp className="text-green-400" size={20} />
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <ArrowDownLeft size={64} className="text-green-500" />
+          </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-500 text-sm font-medium">Total Earned (as Recipient)</h3>
+            <div className="bg-green-50 p-2 rounded-lg">
+              <TrendingUp className="text-green-500" size={20} />
+            </div>
           </div>
           {Object.entries(summary.tokenSummary).map(([token, amounts]) =>
             amounts.earned > 0 ? (
               <div key={token} className="mb-1">
-                <p className="text-2xl font-bold text-white">
+                <p className="text-3xl font-bold text-gray-900">
                   {amounts.earned.toFixed(7)}{' '}
-                  <span className="text-lg text-slate-400">{token}</span>
+                  <span className="text-lg text-gray-400 font-medium">{token}</span>
                 </p>
               </div>
             ) : null,
           )}
-          {summary.totalEarned === 0 && <p className="text-2xl font-bold text-slate-600">0 XLM</p>}
-          <p className="text-xs text-slate-500 mt-2">
+          {summary.totalEarned === 0 && <p className="text-3xl font-bold text-gray-900">0.0000000 <span className="text-lg text-gray-400 font-medium">XLM</span></p>}
+          <p className="text-xs text-gray-400 mt-2 font-medium">
             {streams.filter((s) => s.recipient === walletAddress).length} stream(s)
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="glass rounded-xl p-2 inline-flex gap-2">
-        <button
-          onClick={() => {
-            setActiveTab('sender');
-            setStatusFilter('ALL');
-          }}
-          className={`px-6 py-2 rounded-lg font-medium transition-all ${
-            activeTab === 'sender'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          As Sender
-          <span className="ml-2 text-xs opacity-70">
-            ({streams.filter((s) => s.sender === walletAddress).length})
-          </span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('recipient');
-            setStatusFilter('ALL');
-          }}
-          className={`px-6 py-2 rounded-lg font-medium transition-all ${
-            activeTab === 'recipient'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          As Recipient
-          <span className="ml-2 text-xs opacity-70">
-            ({streams.filter((s) => s.recipient === walletAddress).length})
-          </span>
-        </button>
-      </div>
-
-      {/* Status Filter */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Filter size={16} />
-          <span className="text-sm font-medium">Filter:</span>
-        </div>
-        {(['ALL', 'UPCOMING', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as FilterType[]).map((filter) => (
+      {/* Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* Tabs */}
+        <div className="flex gap-4">
           <button
-            key={filter}
-            onClick={() => setStatusFilter(filter)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              statusFilter === filter
-                ? 'bg-slate-700 text-white border border-slate-600'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+            onClick={() => {
+              setActiveTab('sender');
+              setStatusFilter('ALL');
+            }}
+            className={`text-sm font-medium transition-colors ${
+              activeTab === 'sender'
+                ? 'text-gray-900'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {filter.charAt(0) + filter.slice(1).toLowerCase()}
-            <span className="ml-1.5 text-xs opacity-70">
-              ({filter === 'ALL' ? streamCounts.ALL : streamCounts[filter as StreamStatus] || 0})
-            </span>
+            As Sender <span className="text-xs opacity-70 ml-1">({streams.filter((s) => s.sender === walletAddress).length})</span>
           </button>
-        ))}
+          <button
+            onClick={() => {
+              setActiveTab('recipient');
+              setStatusFilter('ALL');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'recipient'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                : 'bg-white text-gray-500 hover:text-gray-700 border border-gray-200'
+            }`}
+          >
+            As Recipient <span className="text-xs opacity-70 ml-1">({streams.filter((s) => s.recipient === walletAddress).length})</span>
+          </button>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+          <div className="flex items-center gap-2 text-gray-400 mr-2">
+            <Filter size={14} />
+            <span className="text-xs font-medium uppercase tracking-wider">Filter:</span>
+          </div>
+          {(['ALL', 'UPCOMING', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as FilterType[]).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setStatusFilter(filter)}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                statusFilter === filter
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {filter.charAt(0) + filter.slice(1).toLowerCase()}
+              <span className="ml-1.5 opacity-60 font-normal">
+                ({filter === 'ALL' ? streamCounts.ALL : streamCounts[filter as StreamStatus] || 0})
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Streams Grid */}
       <div>
         {filteredStreams.length === 0 ? (
-          <div className="glass rounded-xl p-12 text-center">
-            <div className="text-slate-600 mb-2">
-              <Filter size={48} className="mx-auto mb-3 opacity-30" />
+          <div className="bg-gray-50 rounded-2xl p-16 text-center border-2 border-dashed border-gray-200">
+            <div className="text-gray-300 mb-4">
+              <Filter size={48} className="mx-auto" />
             </div>
-            <h3 className="text-slate-400 font-medium mb-1">No streams found</h3>
-            <p className="text-slate-500 text-sm">
+            <h3 className="text-gray-900 font-semibold mb-1">No streams found</h3>
+            <p className="text-gray-500 text-sm">
               {statusFilter === 'ALL'
                 ? `No streams where you are the ${activeTab}`
                 : `No ${statusFilter.toLowerCase()} streams in this category`}
@@ -260,15 +267,15 @@ export default function MyStreamsDashboard({
 
       {/* Quick Stats Footer */}
       {filteredStreams.length > 0 && (
-        <div className="glass rounded-xl p-4 flex justify-between items-center text-sm">
-          <div className="text-slate-400">
-            Showing <span className="text-white font-medium">{filteredStreams.length}</span> of{' '}
-            <span className="text-white font-medium">{tabFilteredStreams.length}</span> streams
+        <div className="flex justify-between items-center text-xs text-gray-400 pt-4 border-t border-gray-100">
+          <div>
+            Showing <span className="text-gray-600 font-medium">{filteredStreams.length}</span> of{' '}
+            <span className="text-gray-600 font-medium">{tabFilteredStreams.length}</span> streams
           </div>
           {activeTab === 'recipient' && (
-            <div className="text-slate-400">
+            <div>
               Available to withdraw:{' '}
-              <span className="text-green-400 font-medium">
+              <span className="text-green-600 font-bold text-sm">
                 {filteredStreams
                   .filter((s) => s.status === 'ACTIVE')
                   .reduce((total, stream) => {

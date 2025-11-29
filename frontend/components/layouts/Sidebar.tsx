@@ -21,6 +21,7 @@ import {
   FileText,
   ListTodo,
   FileCheck,
+  Activity,
 } from 'lucide-react';
 import { UserRole } from '@/types/role';
 
@@ -37,6 +38,12 @@ const menuItems: MenuItem[] = [
     name: 'Dashboard',
     href: '/admin/dashboard',
     icon: LayoutDashboard,
+    roles: ['admin'],
+  },
+  {
+    name: 'Stream Dashboard',
+    href: '/admin/stream',
+    icon: Activity,
     roles: ['admin'],
   },
   {
@@ -75,12 +82,6 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     roles: ['admin'],
   },
-  // {
-  //   name: 'Reports',
-  //   href: '/admin/reports',
-  //   icon: FileText,
-  //   roles: ['admin'],
-  // },
   {
     name: 'Settings',
     href: '/admin/settings',
@@ -93,6 +94,12 @@ const menuItems: MenuItem[] = [
     name: 'Dashboard',
     href: '/builder/dashboard',
     icon: LayoutDashboard,
+    roles: ['builder'],
+  },
+  {
+    name: 'Stream Dashboard',
+    href: '/builder/stream',
+    icon: Activity,
     roles: ['builder'],
   },
   {
@@ -143,7 +150,6 @@ const menuItems: MenuItem[] = [
     icon: User,
     roles: ['builder'],
   },
-
 ];
 
 interface SidebarProps {

@@ -44,30 +44,30 @@ function getStatusBadgeStyle(status: StreamStatus) {
   switch (status) {
     case 'UPCOMING':
       return {
-        bg: 'bg-blue-500/10',
-        border: 'border-blue-500/30',
-        text: 'text-blue-400',
+        bg: 'bg-blue-50',
+        border: 'border-blue-100',
+        text: 'text-blue-600',
         label: 'Upcoming',
       };
     case 'ACTIVE':
       return {
-        bg: 'bg-green-500/10',
-        border: 'border-green-500/30',
-        text: 'text-green-400',
+        bg: 'bg-green-50',
+        border: 'border-green-100',
+        text: 'text-green-600',
         label: 'Active',
       };
     case 'COMPLETED':
       return {
-        bg: 'bg-slate-500/10',
-        border: 'border-slate-500/30',
-        text: 'text-slate-400',
+        bg: 'bg-gray-100',
+        border: 'border-gray-200',
+        text: 'text-gray-600',
         label: 'Completed',
       };
     case 'CANCELLED':
       return {
-        bg: 'bg-red-500/10',
-        border: 'border-red-500/30',
-        text: 'text-red-400',
+        bg: 'bg-red-50',
+        border: 'border-red-100',
+        text: 'text-red-600',
         label: 'Cancelled',
       };
   }
@@ -90,23 +90,25 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
       : `${stream.tokenAddress.slice(0, 3)}...${stream.tokenAddress.slice(-3)}`;
 
   return (
-    <div className="glass rounded-2xl p-6 relative overflow-hidden group hover:border-indigo-500/30 transition-colors">
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 relative overflow-hidden group hover:shadow-md transition-all duration-300">
       {/* Progress Bar Background */}
-      <div className="absolute bottom-0 left-0 h-1 bg-slate-800 w-full">
+      <div className="absolute top-0 left-0 h-1 bg-gray-100 w-full">
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
+          className={`h-full transition-all duration-1000 ${
+            status === 'COMPLETED' ? 'bg-gray-400' : 'bg-indigo-500'
+          }`}
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-8 mt-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
             <User size={20} />
           </div>
           <div>
-            <div className="text-sm text-slate-400">From</div>
-            <div className="font-mono text-sm">
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">From</div>
+            <div className="font-mono text-sm text-gray-600 font-medium">
               {stream.sender.slice(0, 4)}...{stream.sender.slice(-4)}
             </div>
           </div>
@@ -114,34 +116,38 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
 
         {/* Status Badge */}
         <div
-          className={`px-3 py-1 rounded-full border text-xs font-medium ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
+          className={`px-3 py-1 rounded-full border text-xs font-bold ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
         >
           {statusStyle.label}
         </div>
 
-        <ArrowRight className="text-slate-600" />
         <div className="flex items-center gap-3 text-right">
           <div>
-            <div className="text-sm text-slate-400">To</div>
-            <div className="font-mono text-sm">
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">To</div>
+            <div className="font-mono text-sm text-gray-600 font-medium">
               {stream.recipient.slice(0, 4)}...{stream.recipient.slice(-4)}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
             <User size={20} />
           </div>
         </div>
       </div>
 
-      <div className="py-4 border-t border-slate-800 border-b mb-6">
-        <StreamCounter
-          startTime={Number(stream.startTime)}
-          stopTime={Number(stream.stopTime)}
-          ratePerSecond={Number(stream.ratePerSecond)}
-          withdrawn={Number(stream.withdrawn)}
-          isRecipient={isRecipient}
-          tokenSymbol={tokenSymbol}
-        />
+      <div className="py-6 border-t border-gray-100 border-b mb-6">
+        <div className="text-center">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-2">
+            Available to Withdraw
+          </p>
+          <StreamCounter
+            startTime={Number(stream.startTime)}
+            stopTime={Number(stream.stopTime)}
+            ratePerSecond={Number(stream.ratePerSecond)}
+            withdrawn={Number(stream.withdrawn)}
+            isRecipient={isRecipient}
+            tokenSymbol={tokenSymbol}
+          />
+        </div>
       </div>
 
       <div className="flex gap-3">
@@ -159,9 +165,9 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
               <button
                 onClick={() => onWithdraw(stream.id)}
                 disabled={!hasAvailable}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-sm shadow-green-200"
               >
-                <Download size={16} />
+                <Download size={18} />
                 {hasAvailable ? 'Withdraw' : 'All Withdrawn'}
               </button>
             );
@@ -169,14 +175,14 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
         {isSender && (status === 'UPCOMING' || status === 'ACTIVE') && (
           <button
             onClick={() => onCancel(stream.id)}
-            className="flex-1 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
           >
-            <Ban size={16} />
+            <Ban size={18} />
             Cancel
           </button>
         )}
         {(status === 'COMPLETED' || status === 'CANCELLED') && (
-          <div className="flex-1 text-center py-2 text-slate-500 text-sm">
+          <div className="flex-1 text-center py-2.5 text-gray-400 text-sm font-medium bg-gray-50 rounded-lg">
             {status === 'COMPLETED' ? '✓ Stream completed' : '✗ Stream cancelled'}
           </div>
         )}
