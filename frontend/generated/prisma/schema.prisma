@@ -32,18 +32,20 @@ model User {
 }
 
 model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String
-  type        String // 'Workshop', 'Hackathon', 'Meetup', 'Part-time Job', 'Full-time Job', 'Hourly Job'
-  location    String? // Only for Workshop, Hackathon, Meetup
-  date        DateTime? // Only for Workshop, Hackathon, Meetup
-  budget      Float
-  status      String    @default("Open") // 'Open', 'Closed', 'In Progress'
-  createdById String
-  createdBy   User      @relation(fields: [createdById], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  description    String
+  type           String // 'Workshop', 'Hackathon', 'Meetup', 'Part-time Job', 'Full-time Job', 'Hourly Job'
+  location       String? // Only for Workshop, Hackathon, Meetup
+  date           DateTime? // Only for Workshop, Hackathon, Meetup
+  budget         Float
+  streamDuration Int? // Duration in seconds
+  streamId       String? // ID of the active stream on chain
+  status         String    @default("Open") // 'Open', 'Closed', 'In Progress'
+  createdById    String
+  createdBy      User      @relation(fields: [createdById], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   kpis         KPI[]
   applications Application[]

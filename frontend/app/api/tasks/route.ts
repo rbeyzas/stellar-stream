@@ -16,10 +16,9 @@ export async function GET() {
       },
     });
 
-    const tasksWithCounts = tasks.map((task) => ({
+    const tasksWithCounts = tasks.map((task: any) => ({
       ...task,
-      currentApplicants: task._count.applications,
-      date: task.date?.toISOString(),
+      applicationCount: task._count.applications,
     }));
 
     return NextResponse.json(tasksWithCounts);
@@ -33,6 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const {
       title,
       description,
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       location,
       date,
       budget,
+      streamDuration,
       status,
       kpis,
       createdById,
@@ -61,27 +62,31 @@ export async function POST(request: Request) {
     }
 
     // Resolve creator id: prefer createdById, otherwise upsert by email
-    let creatorId: string | undefined = createdById;
-    if (!creatorId) {
-      if (!createdByEmail) {
-        return NextResponse.json(
-          { error: 'Missing creator info: provide createdById or createdByEmail' },
-          { status: 400 },
-        );
-      }
-      const userRole = createdByEmail.includes('admin') ? 'admin' : 'builder';
-      const user = await prisma.user.upsert({
+    // Determine creator ID
+    let creatorId = createdById;
+
+    if (!creatorId && createdByEmail) {
+      // Find user by email
+      const user = await prisma.user.findUnique({
         where: { email: createdByEmail },
-        update: {
-          role: userRole,
-        },
-        create: {
-          email: createdByEmail,
-          role: userRole,
-        },
       });
-      creatorId = user.id;
+
+      if (!user) {
+        // Create user if not exists (auto-register for now, or error)
+        // For now, let's error if user not found, or create a placeholder
+        const newUser = await prisma.user.create({
+          data: {
+            email: createdByEmail,
+            role: 'admin', // Default to admin for task creators? Or 'builder'?
+            // Assuming admin creates tasks usually
+          },
+        });
+        creatorId = newUser.id;
+      } else {
+        creatorId = user.id;
+      }
     }
+
 
     const task = await prisma.task.create({
       data: {
@@ -90,7 +95,11 @@ export async function POST(request: Request) {
         type,
         location: requiresLocationDate ? location : null,
         date: requiresLocationDate && date ? new Date(date) : null,
-        budget: typeof budget === 'number' ? budget : parseFloat(budget),
+        budget: (typeof budget === 'number' && !isNaN(budget)) ? budget : (parseFloat(budget) || 0),
+        streamDuration:
+          typeof streamDuration === 'number' && !isNaN(streamDuration)
+            ? Math.round(streamDuration)
+            : Math.round(parseFloat(streamDuration || '0') || 0),
         createdById: creatorId,
         status: status || 'Open',
         kpis: kpis?.length
@@ -109,8 +118,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(task, { status: 201 });
-  } catch (error) {
-    console.error('Error creating task:', error);
-    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error creating task:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    return NextResponse.json(
+      { error: 'Failed to create task', details: error.message, stack: error.stack },
+      { status: 500 }
+    );
   }
 }

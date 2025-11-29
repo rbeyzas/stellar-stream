@@ -19,7 +19,6 @@ export default function CreateStreamModal({ isOpen, onClose, onSubmit }: CreateS
     amount: '',
     token: 'XLM', // Default
     duration: '3600', // Default 1 hour in seconds
-    startTime: 'now',
   });
 
   const [customToken, setCustomToken] = useState('');
@@ -66,12 +65,19 @@ export default function CreateStreamModal({ isOpen, onClose, onSubmit }: CreateS
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* ... (keep existing modal wrapper) ... */}
           <motion.div
-            // ... (keep existing motion props) ...
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: '-40%' }}
+            animate={{ opacity: 1, scale: 1, y: '-50%' }}
+            exit={{ opacity: 0, scale: 0.95, y: '-40%' }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 p-6"
           >
-            {/* ... (keep header) ... */}
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
                 Create New Stream
@@ -95,7 +101,6 @@ export default function CreateStreamModal({ isOpen, onClose, onSubmit }: CreateS
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* ... (keep recipient input) ... */}
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1">
                   Recipient Address

@@ -1,6 +1,6 @@
 'use client';
 
-import { User, ArrowRight, Download, Ban } from 'lucide-react';
+import { User, ArrowRight, Download, Ban, Play, Pause } from 'lucide-react';
 import StreamCounter from './StreamCounter';
 import { Stream, StreamStatus } from '../types';
 import { XLM_TOKEN_ADDRESS } from '../lib/contract';
@@ -10,33 +10,26 @@ interface StreamCardProps {
   userAddress: string;
   onWithdraw: (id: string) => void;
   onCancel: (id: string) => void;
+  onStart: (id: string) => void;
+  onStop: (id: string) => void;
 }
 
 // Helper function to determine stream status
 function getStreamStatus(stream: Stream): StreamStatus {
-  // Priority 1: Use status from contract if available
-  if (stream.status) return stream.status;
-
-  // Priority 2: Check is_cancelled flag from contract
   if (stream.isCancelled) return 'CANCELLED';
-
-  // Priority 3: Calculate based on time and remaining balance
-  const now = Date.now() / 1000;
-
-  if (now < stream.startTime) return 'UPCOMING';
-
-  // Check COMPLETED: All funds must be withdrawn (remaining balance ~0)
-  // Using deposit vs withdrawn comparison for accuracy
-  const totalWithdrawn = stream.withdrawn || 0;
+  
+  // If remaining balance is 0 (or close to), it's COMPLETED
   const totalDeposit = stream.deposit || 0;
-  const fullyWithdrawn = totalDeposit > 0 && Math.abs(totalDeposit - totalWithdrawn) < 0.0000001;
-
-  if (fullyWithdrawn) {
-    return 'COMPLETED';
+  if (totalDeposit > 0 && stream.remainingBalance < 0.0000001) {
+      return 'COMPLETED';
   }
 
-  // If past stop time but not fully withdrawn, still ACTIVE (can withdraw remaining)
-  return 'ACTIVE';
+  if (stream.isRunning) return 'ACTIVE';
+  
+  // If not running, but has accrued time > 0, it's PAUSED
+  if (stream.totalAccrued > 0) return 'PAUSED';
+
+  return 'UPCOMING';
 }
 
 // Helper function for status badge styling
@@ -47,14 +40,21 @@ function getStatusBadgeStyle(status: StreamStatus) {
         bg: 'bg-blue-50',
         border: 'border-blue-100',
         text: 'text-blue-600',
-        label: 'Upcoming',
+        label: 'Ready to Start',
       };
     case 'ACTIVE':
       return {
         bg: 'bg-green-50',
         border: 'border-green-100',
         text: 'text-green-600',
-        label: 'Active',
+        label: 'Working (Active)',
+      };
+    case 'PAUSED':
+      return {
+        bg: 'bg-yellow-50',
+        border: 'border-yellow-100',
+        text: 'text-yellow-600',
+        label: 'Paused',
       };
     case 'COMPLETED':
       return {
@@ -70,16 +70,23 @@ function getStatusBadgeStyle(status: StreamStatus) {
         text: 'text-red-600',
         label: 'Cancelled',
       };
+    default:
+        return {
+            bg: 'bg-gray-50',
+            border: 'border-gray-100',
+            text: 'text-gray-600',
+            label: status,
+        };
   }
 }
 
-export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }: StreamCardProps) {
+export default function StreamCard({ stream, userAddress, onWithdraw, onCancel, onStart, onStop }: StreamCardProps) {
   const isRecipient = stream.recipient === userAddress;
   const isSender = stream.sender === userAddress;
-  const progress = Math.min(
-    100,
-    ((Date.now() / 1000 - stream.startTime) / (stream.stopTime - stream.startTime)) * 100,
-  );
+  
+  // Progress based on budget used
+  const totalEarned = stream.totalAccrued + (stream.isRunning ? (Date.now()/1000 - stream.lastUpdateTime) * stream.ratePerSecond : 0);
+  const progress = Math.min(100, (totalEarned / stream.deposit) * 100);
 
   const status = getStreamStatus(stream);
   const statusStyle = getStatusBadgeStyle(status);
@@ -140,39 +147,69 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
             Available to Withdraw
           </p>
           <StreamCounter
-            startTime={Number(stream.startTime)}
-            stopTime={Number(stream.stopTime)}
-            ratePerSecond={Number(stream.ratePerSecond)}
+            startTime={Number(stream.lastUpdateTime)} // Using last update time as base for counter
+            stopTime={stream.isRunning ? Number.MAX_SAFE_INTEGER : Number(stream.lastUpdateTime)}
+            ratePerSecond={stream.isRunning ? Number(stream.ratePerSecond) : 0}
             withdrawn={Number(stream.withdrawn)}
+            baseEarned={Number(stream.totalAccrued)} // Pass accumulated earnings
+            maxAmount={Number(stream.deposit)} // Cap at total deposit
             isRecipient={isRecipient}
             tokenSymbol={tokenSymbol}
           />
         </div>
       </div>
 
-      <div className="flex gap-3">
-        {isRecipient &&
-          status === 'ACTIVE' &&
-          (() => {
-            // Calculate available amount
-            const now = Date.now() / 1000;
-            const elapsed = Math.min(now, stream.stopTime) - stream.startTime;
-            const totalVested = elapsed * stream.ratePerSecond;
-            const available = Math.max(0, totalVested - stream.withdrawn);
-            const hasAvailable = available > 0.000001; // More than 1 stroop
+      <div className="flex gap-3 flex-wrap">
+        {isRecipient && (
+            <>
+                {/* Start/Stop Controls */}
+                {!stream.isRunning && !stream.isCancelled && stream.remainingBalance > 0 && stream.totalAccrued < stream.deposit && (
+                    <button
+                        onClick={() => onStart(stream.id)}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                    >
+                        <Play size={18} />
+                        Start Work
+                    </button>
+                )}
+                
+                {stream.isRunning && !stream.isCancelled && (
+                    <button
+                        onClick={() => onStop(stream.id)}
+                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                    >
+                        <Pause size={18} />
+                        Pause Work
+                    </button>
+                )}
 
-            return (
-              <button
-                onClick={() => onWithdraw(stream.id)}
-                disabled={!hasAvailable}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-sm shadow-green-200"
-              >
-                <Download size={18} />
-                {hasAvailable ? 'Withdraw' : 'All Withdrawn'}
-              </button>
-            );
-          })()}
-        {isSender && (status === 'UPCOMING' || status === 'ACTIVE') && (
+                {/* Withdraw Button */}
+                {(() => {
+                    // Calculate available amount
+                    const now = Date.now() / 1000;
+                    const currentSession = stream.isRunning ? (now - stream.lastUpdateTime) * stream.ratePerSecond : 0;
+                    const totalVested = stream.totalAccrued + currentSession;
+                    // Available = Total Vested - (Deposit - Remaining)
+                    // Wait, withdrawn is tracked separately in our type?
+                    // Let's assume stream.withdrawn is correct.
+                    const available = Math.max(0, totalVested - stream.withdrawn);
+                    const hasAvailable = available > 0.000001;
+
+                    return (
+                    <button
+                        onClick={() => onWithdraw(stream.id)}
+                        disabled={!hasAvailable}
+                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-sm shadow-green-200"
+                    >
+                        <Download size={18} />
+                        {hasAvailable ? 'Withdraw' : 'Withdraw'}
+                    </button>
+                    );
+                })()}
+            </>
+        )}
+        
+        {isSender && !stream.isCancelled && stream.remainingBalance > 0 && (
           <button
             onClick={() => onCancel(stream.id)}
             className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
@@ -181,8 +218,9 @@ export default function StreamCard({ stream, userAddress, onWithdraw, onCancel }
             Cancel
           </button>
         )}
+        
         {(status === 'COMPLETED' || status === 'CANCELLED') && (
-          <div className="flex-1 text-center py-2.5 text-gray-400 text-sm font-medium bg-gray-50 rounded-lg">
+          <div className="flex-1 text-center py-2.5 text-gray-400 text-sm font-medium bg-gray-50 rounded-lg w-full">
             {status === 'COMPLETED' ? '✓ Stream completed' : '✗ Stream cancelled'}
           </div>
         )}

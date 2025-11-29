@@ -91,6 +91,23 @@ export default function PaymentModal({
         }),
       });
 
+      // Record payment in Payment table
+      await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          streamId: `task-${submissionId}`, // Use submission ID as pseudo stream ID
+          amount,
+          token: 'XLM',
+          from: adminWallet,
+          to: builderWallet,
+          txHash: hash,
+          // We don't have builderEmail here directly, but we can try to find it or leave it null
+          // The API will try to find builder by email if provided, but we can also rely on builderWallet if we updated the API
+          // For now let's just send what we have.
+        }),
+      });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.details || 'Failed to update submission');

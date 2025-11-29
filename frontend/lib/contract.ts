@@ -74,7 +74,7 @@ export function getErrorMessage(error: unknown): string {
   return `❌ İşlem başarısız: ${errorString.substring(0, 100)}`;
 }
 
-const CONTRACT_ID = 'CCCT5YGDACYW3DKISDU47GAUAVPGGYTSAC3OM5ZA3IQ7J7KIIXPUHCZT'; // Updated with dust amount fix (< 10 stroops)
+export const CONTRACT_ID = 'CAUBJHBW3MKBZQWAKZL3NQJJJPSYUGZ2GQXAMKSV52I4RPDCXGEGJ5U5'; // Updated with dust amount fix (< 10 stroops)
 export const XLM_TOKEN_ADDRESS = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'; // Native XLM on Testnet
 
 export const getStream = async (streamId: string) => {
@@ -210,17 +210,21 @@ export const createStream = async (
   amount: string,
   token: string,
   duration: string,
-  startTime: string,
 ) => {
   // Convert amount to stroops (7 decimals)
   const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 10000000));
+  
+  // Calculate rate per second
+  // Rate = Amount / Duration
+  // We need to be careful with integer division.
+  // Ideally, amount should be divisible by duration, or we accept dust.
+  // For now, simple division.
+  const durationSeconds = BigInt(parseInt(duration));
+  const ratePerSecond = amountBigInt / durationSeconds;
 
-  // Calculate times
-  const start =
-    startTime === 'now'
-      ? Math.floor(Date.now() / 1000)
-      : Math.floor(new Date(startTime).getTime() / 1000);
-  const stop = start + parseInt(duration);
+  if (ratePerSecond === BigInt(0)) {
+    throw new Error('Calculated rate is too low (0). Increase amount or decrease duration.');
+  }
 
   const operation = StellarSdk.Operation.invokeHostFunction({
     func: StellarSdk.xdr.HostFunction.hostFunctionTypeInvokeContract(
@@ -232,8 +236,7 @@ export const createStream = async (
           new StellarSdk.Address(recipient).toScVal(),
           StellarSdk.nativeToScVal(amountBigInt, { type: 'i128' }),
           new StellarSdk.Address(token).toScVal(),
-          StellarSdk.nativeToScVal(start, { type: 'u64' }),
-          StellarSdk.nativeToScVal(stop, { type: 'u64' }),
+          StellarSdk.nativeToScVal(ratePerSecond, { type: 'i128' }),
         ],
       }),
     ),
@@ -275,6 +278,35 @@ export const cancelStream = async (streamId: string, sender: string) => {
     ),
     auth: [],
   });
-
   return await invokeContract(sender, operation);
+};
+
+export const startWork = async (streamId: string, builder: string) => {
+  const operation = StellarSdk.Operation.invokeHostFunction({
+    func: StellarSdk.xdr.HostFunction.hostFunctionTypeInvokeContract(
+      new StellarSdk.xdr.InvokeContractArgs({
+        contractAddress: new StellarSdk.Address(CONTRACT_ID).toScAddress(),
+        functionName: 'start_work',
+        args: [StellarSdk.nativeToScVal(BigInt(streamId), { type: 'u64' })],
+      }),
+    ),
+    auth: [],
+  });
+
+  return await invokeContract(builder, operation);
+};
+
+export const stopWork = async (streamId: string, builder: string) => {
+  const operation = StellarSdk.Operation.invokeHostFunction({
+    func: StellarSdk.xdr.HostFunction.hostFunctionTypeInvokeContract(
+      new StellarSdk.xdr.InvokeContractArgs({
+        contractAddress: new StellarSdk.Address(CONTRACT_ID).toScAddress(),
+        functionName: 'stop_work',
+        args: [StellarSdk.nativeToScVal(BigInt(streamId), { type: 'u64' })],
+      }),
+    ),
+    auth: [],
+  });
+
+  return await invokeContract(builder, operation);
 };

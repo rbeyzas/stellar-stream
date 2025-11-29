@@ -39,6 +39,8 @@ model Task {
   location    String?  // Only for Workshop, Hackathon, Meetup
   date        DateTime? // Only for Workshop, Hackathon, Meetup
   budget      Float
+  streamDuration Int? // Duration in seconds
+  streamId    String? // ID of the active stream on chain
   status      String   @default("Open") // 'Open', 'Closed', 'In Progress'
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])

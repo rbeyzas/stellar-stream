@@ -6,7 +6,7 @@ export type TaskType =
   | 'Full-time Job'
   | 'Hourly Job';
 
-export type TaskStatus = 'Open' | 'Closed' | 'In Progress';
+export type TaskStatus = 'Open' | 'Closed' | 'In Progress' | 'Pending Stream Start';
 
 export interface KPI {
   id?: string;
@@ -22,7 +22,7 @@ export interface Application {
   builderEmail: string;
   builderName: string | null;
   coverLetter: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'Pending' | 'Approved' | 'Rejected';
   createdAt: string;
 }
 
@@ -34,6 +34,8 @@ export interface Task {
   location?: string; // Only for Workshop, Hackathon, Meetup
   date?: string; // Only for Workshop, Hackathon, Meetup
   budget: number;
+  streamDuration?: number;
+  streamId?: string;
   status: TaskStatus;
   kpis: KPI[];
   applications?: Application[];

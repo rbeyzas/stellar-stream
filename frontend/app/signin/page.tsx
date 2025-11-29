@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Users } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -17,26 +18,49 @@ export default function SignInPage() {
 
     // Simple validation
     if (!email || !password) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       setIsLoading(false);
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      // Save email to localStorage
-      localStorage.setItem('userEmail', email);
+    try {
+      // Simulate API call with actual fetch
+      const res = await fetch('/api/auth/signin', { // Assuming an API endpoint for sign-in
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Check if email contains "admin"
-      if (email.toLowerCase().includes('admin')) {
-        // Redirect to admin dashboard
-        router.push('/admin');
+      if (res.ok) {
+        const data = await res.json();
+        // Store user info
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('userEmail', data.email);
+        localStorage.setItem('userName', data.name || '');
+        if (data.walletAddress) {
+          localStorage.setItem('walletAddress', data.walletAddress);
+        }
+
+        toast.success('Login successful!');
+        
+        // Redirect based on role
+        if (data.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/builder/dashboard');
+        }
       } else {
-        // Redirect to builder dashboard
-        router.push('/builder/dashboard');
+        const error = await res.json();
+        toast.error(error.error || 'Login failed');
       }
+    } catch (e) {
+      console.error('Login error', e);
+      toast.error('An unexpected error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

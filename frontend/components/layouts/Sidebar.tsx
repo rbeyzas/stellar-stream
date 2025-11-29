@@ -82,12 +82,6 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     roles: ['admin'],
   },
-  {
-    name: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-    roles: ['admin'],
-  },
 
   // Builder menu items
   {
@@ -118,18 +112,6 @@ const menuItems: MenuItem[] = [
     name: 'My Tasks',
     href: '/builder/my-tasks',
     icon: ListTodo,
-    roles: ['builder'],
-  },
-  {
-    name: 'My Campaigns',
-    href: '/builder/campaigns',
-    icon: Gift,
-    roles: ['builder'],
-  },
-  {
-    name: 'Referrals',
-    href: '/builder/referrals',
-    icon: UserCheck,
     roles: ['builder'],
   },
   {

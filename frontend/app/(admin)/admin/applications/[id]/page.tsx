@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Calendar, DollarSign, CheckCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface Application {
   id: string;
@@ -74,14 +75,14 @@ export default function ApplicationDetailPage() {
       if (res.ok) {
         const data = await res.json();
         setApplication(data);
-        alert(`Application ${newStatus.toLowerCase()} successfully!`);
+        toast.success(`Application ${newStatus.toLowerCase()} successfully!`);
         router.push('/admin/applications');
       } else {
-        alert('Failed to update application status');
+        toast.error('Failed to update application status');
       }
     } catch (e) {
       console.error('Error updating application', e);
-      alert('Failed to update application status');
+      toast.error('Failed to update application status');
     } finally {
       setIsSubmitting(false);
     }

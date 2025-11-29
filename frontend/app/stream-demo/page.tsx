@@ -8,6 +8,8 @@ import {
   createStream,
   withdrawFromStream,
   cancelStream,
+  startWork,
+  stopWork,
   getStream,
   getNextStreamId,
   getStreamStatus,
@@ -62,15 +64,20 @@ export default function Home() {
               id,
               sender: data.sender.toString(),
               recipient: data.recipient.toString(),
-              startTime: Number(data.start_time),
-              stopTime: Number(data.stop_time),
-              ratePerSecond: Number(data.rate_per_second) / 10000000, // Convert stroops to units
               deposit: Number(data.deposit) / 10000000,
+              ratePerSecond: Number(data.rate_per_second) / 10000000,
               remainingBalance: Number(data.remaining_balance) / 10000000,
-              withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
-              tokenAddress: data.token_address.toString(),
-              status: status || undefined,
+              totalAccrued: Number(data.total_accrued) / 10000000,
+              lastUpdateTime: Number(data.last_update_time),
+              isRunning: data.is_running,
               isCancelled: data.is_cancelled || false,
+              tokenAddress: data.token_address.toString(),
+              withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
+              
+              // Legacy/Derived
+              startTime: Number(data.last_update_time),
+              stopTime: 0,
+              status: status || undefined,
             } as Stream;
           }
           return null;
@@ -135,15 +142,20 @@ export default function Home() {
               id,
               sender: data.sender.toString(),
               recipient: data.recipient.toString(),
-              startTime: Number(data.start_time),
-              stopTime: Number(data.stop_time),
-              ratePerSecond: Number(data.rate_per_second) / 10000000,
               deposit: Number(data.deposit) / 10000000,
+              ratePerSecond: Number(data.rate_per_second) / 10000000,
               remainingBalance: Number(data.remaining_balance) / 10000000,
-              withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
-              tokenAddress: data.token_address.toString(),
-              status: status || undefined,
+              totalAccrued: Number(data.total_accrued) / 10000000,
+              lastUpdateTime: Number(data.last_update_time),
+              isRunning: data.is_running,
               isCancelled: data.is_cancelled || false,
+              tokenAddress: data.token_address.toString(),
+              withdrawn: (Number(data.deposit) - Number(data.remaining_balance)) / 10000000,
+              
+              // Legacy
+              startTime: Number(data.last_update_time),
+              stopTime: 0,
+              status: status || undefined,
             });
             foundIds.push(id);
           }
@@ -178,23 +190,24 @@ export default function Home() {
         data.amount,
         tokenAddress,
         data.duration,
-        data.startTime,
       );
 
       const newStream: Stream = {
         id: streamId,
         sender: walletAddress,
         recipient: data.recipient,
-        startTime:
-          data.startTime === 'now' ? Date.now() / 1000 : new Date(data.startTime).getTime() / 1000,
-        stopTime:
-          (data.startTime === 'now'
-            ? Date.now() / 1000
-            : new Date(data.startTime).getTime() / 1000) + parseInt(data.duration),
-        ratePerSecond: parseFloat(data.amount) / parseInt(data.duration),
-        withdrawn: 0,
         deposit: parseFloat(data.amount),
+        ratePerSecond: parseFloat(data.amount) / parseInt(data.duration),
+        remainingBalance: parseFloat(data.amount),
+        totalAccrued: 0,
+        lastUpdateTime: Date.now() / 1000,
+        isRunning: false,
+        isCancelled: false,
         tokenAddress: tokenAddress,
+        withdrawn: 0,
+        
+        startTime: Date.now() / 1000,
+        stopTime: 0,
         isOptimistic: true,
       };
 
@@ -221,8 +234,8 @@ export default function Home() {
 
     // Calculate available amount
     const now = Date.now() / 1000;
-    const elapsed = Math.min(now, stream.stopTime) - stream.startTime;
-    const totalVested = elapsed * stream.ratePerSecond;
+    const currentSession = stream.isRunning ? (now - stream.lastUpdateTime) * stream.ratePerSecond : 0;
+    const totalVested = stream.totalAccrued + currentSession;
     const available = Math.max(0, totalVested - stream.withdrawn);
 
     setSelectedStreamId(streamId);
@@ -278,6 +291,30 @@ export default function Home() {
       const errorMsg = getErrorMessage(error);
       toast.error(errorMsg);
     }
+  };
+
+  const handleStart = async (streamId: string) => {
+      if (!walletAddress) return;
+      try {
+          await startWork(streamId, walletAddress);
+          toast.success('Started working!');
+          await fetchStreams();
+      } catch (error) {
+          console.error('Start failed', error);
+          toast.error(getErrorMessage(error));
+      }
+  };
+
+  const handleStop = async (streamId: string) => {
+      if (!walletAddress) return;
+      try {
+          await stopWork(streamId, walletAddress);
+          toast.success('Stopped working!');
+          await fetchStreams();
+      } catch (error) {
+          console.error('Stop failed', error);
+          toast.error(getErrorMessage(error));
+      }
   };
 
   return (
@@ -376,6 +413,8 @@ export default function Home() {
                 walletAddress={walletAddress}
                 onWithdraw={handleWithdrawClick}
                 onCancel={handleCancel}
+                onStart={handleStart}
+                onStop={handleStop}
               />
             )}
           </div>

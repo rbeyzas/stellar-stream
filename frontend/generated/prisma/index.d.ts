@@ -2749,10 +2749,12 @@ export namespace Prisma {
 
   export type TaskAvgAggregateOutputType = {
     budget: number | null
+    streamDuration: number | null
   }
 
   export type TaskSumAggregateOutputType = {
     budget: number | null
+    streamDuration: number | null
   }
 
   export type TaskMinAggregateOutputType = {
@@ -2763,6 +2765,8 @@ export namespace Prisma {
     location: string | null
     date: Date | null
     budget: number | null
+    streamDuration: number | null
+    streamId: string | null
     status: string | null
     createdById: string | null
     createdAt: Date | null
@@ -2777,6 +2781,8 @@ export namespace Prisma {
     location: string | null
     date: Date | null
     budget: number | null
+    streamDuration: number | null
+    streamId: string | null
     status: string | null
     createdById: string | null
     createdAt: Date | null
@@ -2791,6 +2797,8 @@ export namespace Prisma {
     location: number
     date: number
     budget: number
+    streamDuration: number
+    streamId: number
     status: number
     createdById: number
     createdAt: number
@@ -2801,10 +2809,12 @@ export namespace Prisma {
 
   export type TaskAvgAggregateInputType = {
     budget?: true
+    streamDuration?: true
   }
 
   export type TaskSumAggregateInputType = {
     budget?: true
+    streamDuration?: true
   }
 
   export type TaskMinAggregateInputType = {
@@ -2815,6 +2825,8 @@ export namespace Prisma {
     location?: true
     date?: true
     budget?: true
+    streamDuration?: true
+    streamId?: true
     status?: true
     createdById?: true
     createdAt?: true
@@ -2829,6 +2841,8 @@ export namespace Prisma {
     location?: true
     date?: true
     budget?: true
+    streamDuration?: true
+    streamId?: true
     status?: true
     createdById?: true
     createdAt?: true
@@ -2843,6 +2857,8 @@ export namespace Prisma {
     location?: true
     date?: true
     budget?: true
+    streamDuration?: true
+    streamId?: true
     status?: true
     createdById?: true
     createdAt?: true
@@ -2944,6 +2960,8 @@ export namespace Prisma {
     location: string | null
     date: Date | null
     budget: number
+    streamDuration: number | null
+    streamId: string | null
     status: string
     createdById: string
     createdAt: Date
@@ -2977,6 +2995,8 @@ export namespace Prisma {
     location?: boolean
     date?: boolean
     budget?: boolean
+    streamDuration?: boolean
+    streamId?: boolean
     status?: boolean
     createdById?: boolean
     createdAt?: boolean
@@ -2996,6 +3016,8 @@ export namespace Prisma {
     location?: boolean
     date?: boolean
     budget?: boolean
+    streamDuration?: boolean
+    streamId?: boolean
     status?: boolean
     createdById?: boolean
     createdAt?: boolean
@@ -3011,6 +3033,8 @@ export namespace Prisma {
     location?: boolean
     date?: boolean
     budget?: boolean
+    streamDuration?: boolean
+    streamId?: boolean
     status?: boolean
     createdById?: boolean
     createdAt?: boolean
@@ -3026,13 +3050,15 @@ export namespace Prisma {
     location?: boolean
     date?: boolean
     budget?: boolean
+    streamDuration?: boolean
+    streamId?: boolean
     status?: boolean
     createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type TaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "description" | "type" | "location" | "date" | "budget" | "status" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
+  export type TaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "description" | "type" | "location" | "date" | "budget" | "streamDuration" | "streamId" | "status" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
   export type TaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     createdBy?: boolean | UserDefaultArgs<ExtArgs>
     kpis?: boolean | Task$kpisArgs<ExtArgs>
@@ -3063,6 +3089,8 @@ export namespace Prisma {
       location: string | null
       date: Date | null
       budget: number
+      streamDuration: number | null
+      streamId: string | null
       status: string
       createdById: string
       createdAt: Date
@@ -3501,6 +3529,8 @@ export namespace Prisma {
     readonly location: FieldRef<"Task", 'String'>
     readonly date: FieldRef<"Task", 'DateTime'>
     readonly budget: FieldRef<"Task", 'Float'>
+    readonly streamDuration: FieldRef<"Task", 'Int'>
+    readonly streamId: FieldRef<"Task", 'String'>
     readonly status: FieldRef<"Task", 'String'>
     readonly createdById: FieldRef<"Task", 'String'>
     readonly createdAt: FieldRef<"Task", 'DateTime'>
@@ -9570,6 +9600,8 @@ export namespace Prisma {
     location: 'location',
     date: 'date',
     budget: 'budget',
+    streamDuration: 'streamDuration',
+    streamId: 'streamId',
     status: 'status',
     createdById: 'createdById',
     createdAt: 'createdAt',
@@ -9830,6 +9862,8 @@ export namespace Prisma {
     location?: StringNullableFilter<"Task"> | string | null
     date?: DateTimeNullableFilter<"Task"> | Date | string | null
     budget?: FloatFilter<"Task"> | number
+    streamDuration?: IntNullableFilter<"Task"> | number | null
+    streamId?: StringNullableFilter<"Task"> | string | null
     status?: StringFilter<"Task"> | string
     createdById?: StringFilter<"Task"> | string
     createdAt?: DateTimeFilter<"Task"> | Date | string
@@ -9848,6 +9882,8 @@ export namespace Prisma {
     location?: SortOrderInput | SortOrder
     date?: SortOrderInput | SortOrder
     budget?: SortOrder
+    streamDuration?: SortOrderInput | SortOrder
+    streamId?: SortOrderInput | SortOrder
     status?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
@@ -9869,6 +9905,8 @@ export namespace Prisma {
     location?: StringNullableFilter<"Task"> | string | null
     date?: DateTimeNullableFilter<"Task"> | Date | string | null
     budget?: FloatFilter<"Task"> | number
+    streamDuration?: IntNullableFilter<"Task"> | number | null
+    streamId?: StringNullableFilter<"Task"> | string | null
     status?: StringFilter<"Task"> | string
     createdById?: StringFilter<"Task"> | string
     createdAt?: DateTimeFilter<"Task"> | Date | string
@@ -9887,6 +9925,8 @@ export namespace Prisma {
     location?: SortOrderInput | SortOrder
     date?: SortOrderInput | SortOrder
     budget?: SortOrder
+    streamDuration?: SortOrderInput | SortOrder
+    streamId?: SortOrderInput | SortOrder
     status?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
@@ -9909,6 +9949,8 @@ export namespace Prisma {
     location?: StringNullableWithAggregatesFilter<"Task"> | string | null
     date?: DateTimeNullableWithAggregatesFilter<"Task"> | Date | string | null
     budget?: FloatWithAggregatesFilter<"Task"> | number
+    streamDuration?: IntNullableWithAggregatesFilter<"Task"> | number | null
+    streamId?: StringNullableWithAggregatesFilter<"Task"> | string | null
     status?: StringWithAggregatesFilter<"Task"> | string
     createdById?: StringWithAggregatesFilter<"Task"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Task"> | Date | string
@@ -10371,6 +10413,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -10388,6 +10432,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdById: string
     createdAt?: Date | string
@@ -10405,6 +10451,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10422,6 +10470,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10439,6 +10489,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdById: string
     createdAt?: Date | string
@@ -10453,6 +10505,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10466,6 +10520,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -11017,6 +11073,17 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
@@ -11040,6 +11107,8 @@ export namespace Prisma {
     location?: SortOrder
     date?: SortOrder
     budget?: SortOrder
+    streamDuration?: SortOrder
+    streamId?: SortOrder
     status?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
@@ -11048,6 +11117,7 @@ export namespace Prisma {
 
   export type TaskAvgOrderByAggregateInput = {
     budget?: SortOrder
+    streamDuration?: SortOrder
   }
 
   export type TaskMaxOrderByAggregateInput = {
@@ -11058,6 +11128,8 @@ export namespace Prisma {
     location?: SortOrder
     date?: SortOrder
     budget?: SortOrder
+    streamDuration?: SortOrder
+    streamId?: SortOrder
     status?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
@@ -11072,6 +11144,8 @@ export namespace Prisma {
     location?: SortOrder
     date?: SortOrder
     budget?: SortOrder
+    streamDuration?: SortOrder
+    streamId?: SortOrder
     status?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
@@ -11080,6 +11154,7 @@ export namespace Prisma {
 
   export type TaskSumOrderByAggregateInput = {
     budget?: SortOrder
+    streamDuration?: SortOrder
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -11110,6 +11185,22 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type TaskScalarRelationFilter = {
@@ -11527,6 +11618,14 @@ export namespace Prisma {
 
   export type FloatFieldUpdateOperationsInput = {
     set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
     increment?: number
     decrement?: number
     multiply?: number
@@ -11976,6 +12075,22 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
   export type NestedFloatNullableFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel> | null
     in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
@@ -12011,6 +12126,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12027,6 +12144,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12142,6 +12261,8 @@ export namespace Prisma {
     location?: StringNullableFilter<"Task"> | string | null
     date?: DateTimeNullableFilter<"Task"> | Date | string | null
     budget?: FloatFilter<"Task"> | number
+    streamDuration?: IntNullableFilter<"Task"> | number | null
+    streamId?: StringNullableFilter<"Task"> | string | null
     status?: StringFilter<"Task"> | string
     createdById?: StringFilter<"Task"> | string
     createdAt?: DateTimeFilter<"Task"> | Date | string
@@ -12448,6 +12569,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12464,6 +12587,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdById: string
     createdAt?: Date | string
@@ -12496,6 +12621,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12512,6 +12639,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12528,6 +12657,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12544,6 +12675,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdById: string
     createdAt?: Date | string
@@ -12611,6 +12744,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12627,6 +12762,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12684,6 +12821,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -12700,6 +12839,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdById: string
     createdAt?: Date | string
@@ -12819,6 +12960,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -12835,6 +12978,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13092,6 +13237,8 @@ export namespace Prisma {
     location?: string | null
     date?: Date | string | null
     budget: number
+    streamDuration?: number | null
+    streamId?: string | null
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13128,6 +13275,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13144,6 +13293,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13160,6 +13311,8 @@ export namespace Prisma {
     location?: NullableStringFieldUpdateOperationsInput | string | null
     date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     budget?: FloatFieldUpdateOperationsInput | number
+    streamDuration?: NullableIntFieldUpdateOperationsInput | number | null
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

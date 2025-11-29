@@ -16,15 +16,17 @@ import {
 } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useRouter } from 'next/navigation';
+import StreamFundingModal from '@/components/StreamFundingModal';
 
 const statusColors = {
   Open: 'bg-green-100 text-green-800 border-green-200',
   'In Progress': 'bg-blue-100 text-blue-800 border-blue-200',
   Completed: 'bg-gray-100 text-gray-800 border-gray-200',
   Cancelled: 'bg-red-100 text-red-800 border-red-200',
+  'Pending Stream Start': 'bg-yellow-100 text-yellow-800 border-yellow-200',
 };
 
-const typeColors = {
+const typeColors: Record<string, string> = {
   Workshop: 'bg-purple-50 text-purple-700 border-purple-200',
   Hackathon: 'bg-blue-50 text-blue-700 border-blue-200',
   Meetup: 'bg-pink-50 text-pink-700 border-pink-200',
@@ -40,6 +42,13 @@ export default function ViewTaskPage({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [adminWallet, setAdminWallet] = useState('');
+
+  useEffect(() => {
+    const wallet = localStorage.getItem('walletAddress');
+    if (wallet) setAdminWallet(wallet);
+  }, []);
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -113,6 +122,15 @@ export default function ViewTaskPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          {task.status === 'Pending Stream Start' && (
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg animate-pulse"
+            >
+              <DollarSign className="w-5 h-5" />
+              <span>Approve & Fund Stream</span>
+            </button>
+          )}
           <button
             onClick={handleDelete}
             className="flex items-center space-x-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
@@ -299,9 +317,9 @@ export default function ViewTaskPage({ params }: { params: Promise<{ id: string 
                 <div className="ml-4 flex flex-col items-end space-y-2">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      application.status === 'pending'
+                      application.status === 'Pending'
                         ? 'bg-yellow-100 text-yellow-800'
-                        : application.status === 'accepted'
+                        : application.status === 'Approved'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}
@@ -326,6 +344,21 @@ export default function ViewTaskPage({ params }: { params: Promise<{ id: string 
           </div>
         )}
       </div>
+      
+      {/* Stream Funding Modal */}
+      <StreamFundingModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        task={task}
+        adminWallet={adminWallet}
+        onSuccess={() => {
+          setIsPaymentModalOpen(false);
+          // Refresh task data
+          fetch(`/api/tasks/${id}`)
+            .then((res) => res.json())
+            .then((data) => setTask(data));
+        }}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ interface MyStreamsDashboardProps {
   walletAddress: string;
   onWithdraw: (streamId: string) => void;
   onCancel: (streamId: string) => void;
+  onStart: (streamId: string) => void;
+  onStop: (streamId: string) => void;
 }
 
 type TabType = 'sender' | 'recipient';
@@ -39,8 +41,8 @@ const calculateTotalEarned = (streams: Stream[], walletAddress: string): number 
  */
 const calculateVestedAmount = (stream: Stream): number => {
   const now = Date.now() / 1000;
-  const elapsed = Math.min(now, stream.stopTime) - stream.startTime;
-  return Math.max(0, elapsed * stream.ratePerSecond);
+  const currentSession = stream.isRunning ? (now - stream.lastUpdateTime) * stream.ratePerSecond : 0;
+  return stream.totalAccrued + currentSession;
 };
 
 /**
@@ -56,6 +58,8 @@ export default function MyStreamsDashboard({
   walletAddress,
   onWithdraw,
   onCancel,
+  onStart,
+  onStop,
 }: MyStreamsDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('recipient');
   const [statusFilter, setStatusFilter] = useState<FilterType>('ALL');
@@ -74,7 +78,16 @@ export default function MyStreamsDashboard({
   // Apply status filter
   const filteredStreams = useMemo(() => {
     if (statusFilter === 'ALL') return tabFilteredStreams;
-    return tabFilteredStreams.filter((stream) => stream.status === statusFilter);
+    return tabFilteredStreams.filter((stream) => {
+        // Handle PAUSED status logic if not explicitly set
+        if (statusFilter === 'PAUSED') {
+            return !stream.isRunning && stream.totalAccrued > 0 && !stream.isCancelled;
+        }
+        if (statusFilter === 'ACTIVE') {
+            return stream.isRunning;
+        }
+        return stream.status === statusFilter;
+    });
   }, [tabFilteredStreams, statusFilter]);
 
   // Calculate summary statistics
@@ -110,12 +123,15 @@ export default function MyStreamsDashboard({
       ACTIVE: 0,
       COMPLETED: 0,
       CANCELLED: 0,
+      PAUSED: 0,
     };
 
     tabFilteredStreams.forEach((stream) => {
-      if (stream.status) {
-        counts[stream.status]++;
-      }
+      if (stream.isCancelled) counts.CANCELLED++;
+      else if (stream.isRunning) counts.ACTIVE++;
+      else if (stream.totalAccrued > 0) counts.PAUSED++;
+      else if (stream.status === 'COMPLETED') counts.COMPLETED++; // Fallback
+      else counts.UPCOMING++;
     });
 
     return counts;
@@ -217,7 +233,7 @@ export default function MyStreamsDashboard({
             <Filter size={14} />
             <span className="text-xs font-medium uppercase tracking-wider">Filter:</span>
           </div>
-          {(['ALL', 'UPCOMING', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as FilterType[]).map((filter) => (
+          {(['ALL', 'UPCOMING', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'] as FilterType[]).map((filter) => (
             <button
               key={filter}
               onClick={() => setStatusFilter(filter)}
@@ -259,6 +275,8 @@ export default function MyStreamsDashboard({
                 userAddress={walletAddress}
                 onWithdraw={onWithdraw}
                 onCancel={onCancel}
+                onStart={onStart}
+                onStop={onStop}
               />
             ))}
           </div>
@@ -277,7 +295,7 @@ export default function MyStreamsDashboard({
               Available to withdraw:{' '}
               <span className="text-green-600 font-bold text-sm">
                 {filteredStreams
-                  .filter((s) => s.status === 'ACTIVE')
+                  .filter((s) => s.isRunning)
                   .reduce((total, stream) => {
                     const vested = calculateVestedAmount(stream);
                     const available = Math.max(0, vested - stream.withdrawn);

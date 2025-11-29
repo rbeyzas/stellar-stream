@@ -28,6 +28,7 @@ export default function CreateTaskPage() {
     location: '',
     date: '',
     budget: '',
+    streamDuration: '',
     description: '',
   });
 
@@ -51,6 +52,7 @@ export default function CreateTaskPage() {
         body: JSON.stringify({
           ...formData,
           budget: parseFloat(formData.budget),
+          streamDuration: (parseFloat(formData.streamDuration) || 0) * 3600, // Convert hours to seconds
           kpis: kpis.map((kpi) => ({
             name: kpi.name,
             target: kpi.target,
@@ -64,7 +66,7 @@ export default function CreateTaskPage() {
         router.push('/admin/tasks');
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        alert(`Error: ${error.error}\nDetails: ${error.details || ''}`);
       }
     } catch (error) {
       console.error('Error creating task:', error);
@@ -215,25 +217,47 @@ export default function CreateTaskPage() {
             </div>
           )}
 
-          {/* Budget */}
+          {/* Budget and Stream Settings */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
               <DollarSign className="w-5 h-5" />
-              <span>Budget</span>
+              <span>Budget & Stream Settings</span>
             </h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Budget (XLM) *</label>
-              <input
-                type="number"
-                name="budget"
-                value={formData.budget}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="500"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Budget (XLM) *</label>
+                <input
+                  type="number"
+                  name="budget"
+                  value={formData.budget}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Stream Duration (Hours) *
+                </label>
+                <input
+                  type="number"
+                  name="streamDuration"
+                  value={formData.streamDuration}
+                  onChange={handleChange}
+                  required
+                  min="0.1"
+                  step="0.1"
+                  placeholder="e.g. 24 for 1 day"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  How long the payment stream will last once started.
+                </p>
+              </div>
             </div>
           </div>
 

@@ -1,23 +1,16 @@
 //! # Stellar Stream Contract
 //! 
-//! A Soroban smart contract for real-time payment streaming on Stellar blockchain.
+//! A Soroban smart contract for real-time payment streaming with Start/Stop functionality.
 //! 
 //! ## Features
-//! - **Continuous vesting**: Payments stream per-second from sender to recipient
-//! - **Flexible withdrawals**: Recipients can withdraw vested amounts anytime
-//! - **Cancellable**: Senders can cancel and recover unvested funds
-//! - **Secure**: Comprehensive authorization checks and parameter validation
+//! - **Stopwatch Vesting**: Builder starts/stops work to accumulate earnings
+//! - **Escrow**: Full budget locked upfront
+//! - **Flexible Withdrawals**: Builder can withdraw earned amounts anytime
+//! - **Cancellable**: Admin can cancel, refunding unearned budget
 //! 
 //! ## Security Model
-//! - All state-changing operations require explicit authorization via `require_auth()`
-//! - Arithmetic operations use checked math to prevent overflow/underflow
-//! - Input validation prevents invalid states and edge cases
-//! 
-//! ## Core Concepts
-//! - **Stream**: A continuous token flow from sender to recipient over a time period
-//! - **Vesting**: Amount available = (elapsed_time * rate_per_second)
-//! - **Withdrawal**: Recipient claims vested tokens
-//! - **Cancellation**: Sender terminates stream, refunds unvested portion
+//! - **Authorization**: Strict checks on sender/recipient actions
+//! - **Math**: Checked arithmetic for all monetary calculations
 
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, Symbol};
@@ -27,170 +20,101 @@ mod test;
 #[contract]
 pub struct StreamContract;
 
-/// Error codes returned by contract functions
-/// 
-/// Each error represents a specific validation failure or unauthorized action.
-/// Error codes are designed to be informative for debugging and user-facing messages.
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum StreamError {
-    /// Sender tried to perform an action only they're authorized for
     UnauthorizedSender = 1,
-    /// Recipient tried to perform an action only they're authorized for
     UnauthorizedRecipient = 2,
-    /// Amount parameter is zero or negative (must be > 0)
     InvalidAmount = 3,
-    /// Time range is invalid (start_time >= stop_time)
     InvalidTimeRange = 4,
-    /// Attempted withdrawal before stream start time
     StreamNotStarted = 5,
-    /// No vested funds available to withdraw
     NothingToWithdraw = 6,
-    /// Arithmetic operation would overflow/underflow
     Overflow = 7,
-    /// Stream was already cancelled (cannot cancel twice)
     AlreadyCanceled = 8,
-    /// Sender and recipient addresses are identical (not allowed)
     SenderCannotBeRecipient = 9,
-    /// Stream ID does not exist in storage
     StreamNotFound = 10,
-    /// Start time is more than 30 days in the past
     InvalidStartTime = 11,
-    /// Withdrawal amount exceeds vested balance
     WithdrawExceedsAvailable = 12,
-    /// Stream is cancelled and cannot be modified
     StreamCancelled = 13,
+    StreamAlreadyRunning = 14,
+    StreamNotRunning = 15,
+    BudgetExceeded = 16,
 }
 
-/// Stream lifecycle status
-/// 
-/// Represents the current state of a payment stream.
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum StreamStatus {
-    /// Stream has not started yet (now < start_time)
-    Upcoming = 0,
-    /// Stream is currently active (start_time <= now < stop_time)
-    Active = 1,
-    /// Stream has ended and all funds withdrawn (now >= stop_time && remaining_balance == 0)
-    Completed = 2,
-    /// Stream was cancelled by sender
-    Cancelled = 3,
+    Pending = 0,    // Created but never started
+    Active = 1,     // Currently running (clock ticking)
+    Paused = 2,     // Started before, but currently paused
+    Completed = 3,  // Budget exhausted
+    Cancelled = 4,  // Cancelled by admin
 }
 
-/// Represents a payment stream between two parties
-/// 
-/// A stream continuously vests tokens from sender to recipient over time.
-/// Recipients can withdraw vested amounts at any point, and senders can cancel
-/// to recover unvested funds.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stream {
-    /// Address that created and funded the stream
     pub sender: Address,
-    /// Address that receives the streamed tokens
     pub recipient: Address,
-    /// Unix timestamp when vesting begins
-    pub start_time: u64,
-    /// Unix timestamp when vesting ends
-    pub stop_time: u64,
-    /// Total amount deposited at stream creation (in token's smallest unit)
-    pub deposit: i128,
-    /// Tokens vested per second (deposit / duration)
-    pub rate_per_second: i128,
-    /// Current balance available for withdrawal/refund
-    pub remaining_balance: i128,
-    /// Contract address of the token being streamed
+    pub deposit: i128,          // Total initial budget
+    pub rate_per_second: i128,  // Earnings per second when running
+    pub remaining_balance: i128,// Funds currently in contract (Deposit - Withdrawn)
+    pub total_accrued: i128,    // Total earnings finalized (excluding current session if running)
+    pub last_update_time: u64,  // Last time start/stop/withdraw/cancel happened
+    pub is_running: bool,       // Is the clock currently ticking?
+    pub is_cancelled: bool,     // Has the stream been cancelled?
     pub token_address: Address,
-    /// Whether the stream has been cancelled
-    pub is_cancelled: bool,
 }
 
-/// Storage keys for contract data
 #[contracttype]
 pub enum DataKey {
-    /// Key for accessing a specific stream by ID
     Stream(u64),
-    /// Key for the auto-incrementing stream ID counter
     NextStreamId,
 }
 
 #[contractimpl]
 impl StreamContract {
-    /// Creates a new payment stream
+    /// Creates a new job/stream with a fixed budget and rate
     pub fn create_stream(
         env: Env,
         sender: Address,
         recipient: Address,
         deposit: i128,
         token_address: Address,
-        start_time: u64,
-        stop_time: u64,
+        rate_per_second: i128,
     ) -> Result<u64, StreamError> {
-        // 🔐 AUTHORIZATION: Only sender can create streams from their own address
         sender.require_auth();
         
-        // 🧪 VALIDATION 1: Amount must be positive
-        if deposit <= 0 {
+        if deposit <= 0 || rate_per_second <= 0 {
             return Err(StreamError::InvalidAmount);
         }
-        
-        // 🧪 VALIDATION 2: Sender cannot be recipient
         if sender == recipient {
             return Err(StreamError::SenderCannotBeRecipient);
         }
-        
-        // 🧪 VALIDATION 3: End time must be after start time
-        if start_time >= stop_time {
-            return Err(StreamError::InvalidTimeRange);
-        }
-        
-        // 🧪 VALIDATION 4: Duration cannot be zero (already checked above, but explicit)
-        let duration = stop_time.checked_sub(start_time)
-            .ok_or(StreamError::Overflow)?;
-        
-        if duration == 0 {
-            return Err(StreamError::InvalidTimeRange);
-        }
-        
-        // 🧪 VALIDATION 5: Start time should not be too far in the past (optional sanity check)
-        let current_time = env.ledger().timestamp();
-        const MAX_PAST_TIME: u64 = 86400 * 30; // 30 days
-        if start_time < current_time.saturating_sub(MAX_PAST_TIME) {
-            return Err(StreamError::InvalidStartTime);
-        }
-        
-        // 🧪 VALIDATION 6: Prevent overflow in rate calculation
-        let rate_per_second = deposit.checked_div(duration as i128)
-            .ok_or(StreamError::Overflow)?;
-        
-        if rate_per_second == 0 {
-            return Err(StreamError::InvalidAmount);
-        }
 
-        // Transfer tokens from sender to contract
+        // Transfer tokens to contract
         let token = soroban_sdk::token::Client::new(&env, &token_address);
         token.transfer(&sender, &env.current_contract_address(), &deposit);
 
         let stream = Stream {
             sender: sender.clone(),
             recipient: recipient.clone(),
-            start_time,
-            stop_time,
             deposit,
             rate_per_second,
             remaining_balance: deposit,
-            token_address,
+            total_accrued: 0,
+            last_update_time: env.ledger().timestamp(),
+            is_running: false,
             is_cancelled: false,
+            token_address,
         };
 
         let stream_id = env.storage().instance().get(&DataKey::NextStreamId).unwrap_or(0u64);
         env.storage().instance().set(&DataKey::NextStreamId, &(stream_id + 1));
         env.storage().persistent().set(&DataKey::Stream(stream_id), &stream);
 
-        // Publish StreamCreated event
         env.events().publish(
             (Symbol::new(&env, "stream_created"), sender, recipient),
             stream_id,
@@ -199,207 +123,189 @@ impl StreamContract {
         Ok(stream_id)
     }
 
-    /// Withdraws vested tokens from a stream
-    pub fn withdraw(env: Env, stream_id: u64, amount: i128) -> Result<(), StreamError> {
+    /// Builder starts working (clock starts ticking)
+    pub fn start_work(env: Env, stream_id: u64) -> Result<(), StreamError> {
         let key = DataKey::Stream(stream_id);
-        let mut stream: Stream = env.storage().persistent()
-            .get(&key)
-            .ok_or(StreamError::StreamNotFound)?;
-        
-        // 🔐 AUTHORIZATION: Only recipient can withdraw
+        let mut stream: Stream = env.storage().persistent().get(&key).ok_or(StreamError::StreamNotFound)?;
+
         stream.recipient.require_auth();
-        
-        // 🧪 VALIDATION 0: Stream must not be cancelled
+
         if stream.is_cancelled {
             return Err(StreamError::StreamCancelled);
         }
-        
-        // 🧪 VALIDATION 1: Amount must be positive
-        if amount <= 0 {
-            return Err(StreamError::InvalidAmount);
+        if stream.is_running {
+            return Err(StreamError::StreamAlreadyRunning);
+        }
+        // Check if budget is already exhausted
+        if stream.total_accrued >= stream.deposit {
+             return Err(StreamError::BudgetExceeded);
         }
 
-        let current_time = env.ledger().timestamp();
-        
-        // 🧪 VALIDATION 2: Stream must have started
-        if current_time < stream.start_time {
-            return Err(StreamError::StreamNotStarted);
-        }
-
-        // Calculate time elapsed with overflow protection
-        let time_elapsed = if current_time > stream.stop_time {
-            stream.stop_time.checked_sub(stream.start_time)
-                .ok_or(StreamError::Overflow)?
-        } else {
-            current_time.checked_sub(stream.start_time)
-                .ok_or(StreamError::Overflow)?
-        };
-
-        // Calculate vested amount with overflow protection
-        let vested_amount = stream.rate_per_second.checked_mul(time_elapsed as i128)
-            .ok_or(StreamError::Overflow)?;
-        
-        // Calculate withdrawn amount
-        let withdrawn_amount = stream.deposit.checked_sub(stream.remaining_balance)
-            .ok_or(StreamError::Overflow)?;
-        
-        // Calculate available to withdraw
-        let available_to_withdraw = vested_amount.checked_sub(withdrawn_amount)
-            .ok_or(StreamError::Overflow)?;
-
-        // 🧪 VALIDATION 3: Must have something to withdraw
-        if available_to_withdraw <= 0 {
-            return Err(StreamError::NothingToWithdraw);
-        }
-
-        // 🧪 VALIDATION 4: Amount must not exceed available balance
-        if amount > available_to_withdraw {
-            return Err(StreamError::WithdrawExceedsAvailable);
-        }
-        
-        // 🧪 VALIDATION 5: Amount must not exceed remaining balance
-        if amount > stream.remaining_balance {
-            return Err(StreamError::WithdrawExceedsAvailable);
-        }
-
-        let token = soroban_sdk::token::Client::new(&env, &stream.token_address);
-        token.transfer(&env.current_contract_address(), &stream.recipient, &amount);
-
-        // Update remaining balance with overflow protection
-        stream.remaining_balance = stream.remaining_balance.checked_sub(amount)
-            .ok_or(StreamError::Overflow)?;
+        stream.is_running = true;
+        stream.last_update_time = env.ledger().timestamp();
         
         env.storage().persistent().set(&key, &stream);
-
-        // Publish StreamWithdrawn event
+        
         env.events().publish(
-            (Symbol::new(&env, "stream_withdrawn"), stream.recipient, stream_id),
-            amount,
-        );
-
-        Ok(())
-    }
-
-    /// Cancels a stream and distributes remaining funds
-    pub fn cancel_stream(env: Env, stream_id: u64) -> Result<(), StreamError> {
-        let key = DataKey::Stream(stream_id);
-        
-        // 🧪 VALIDATION 1: Stream must exist
-        let mut stream: Stream = env.storage().persistent()
-            .get(&key)
-            .ok_or(StreamError::StreamNotFound)?;
-        
-        // 🧪 VALIDATION 2: Stream must not already be cancelled
-        if stream.is_cancelled {
-            return Err(StreamError::AlreadyCanceled);
-        }
-        
-        // 🔐 AUTHORIZATION: Only sender can cancel
-        stream.sender.require_auth();
-
-        let current_time = env.ledger().timestamp();
-        
-        // Calculate time elapsed with overflow protection
-        let time_elapsed = if current_time > stream.start_time {
-            if current_time > stream.stop_time {
-                stream.stop_time.checked_sub(stream.start_time)
-                    .ok_or(StreamError::Overflow)?
-            } else {
-                current_time.checked_sub(stream.start_time)
-                    .ok_or(StreamError::Overflow)?
-            }
-        } else {
-            0
-        };
-
-        // Calculate vested amount with overflow protection
-        let vested_amount = stream.rate_per_second.checked_mul(time_elapsed as i128)
-            .ok_or(StreamError::Overflow)?;
-        
-        // Calculate withdrawn amount
-        let withdrawn_amount = stream.deposit.checked_sub(stream.remaining_balance)
-            .ok_or(StreamError::Overflow)?;
-        
-        // Calculate recipient's owed amount (vested but not yet withdrawn)
-        let recipient_amount = vested_amount.checked_sub(withdrawn_amount)
-            .ok_or(StreamError::Overflow)?;
-        
-        // Calculate sender's refund (remaining unvested amount)
-        let sender_amount = stream.remaining_balance.checked_sub(recipient_amount)
-            .ok_or(StreamError::Overflow)?;
-
-        // 🧪 VALIDATION 2: Ensure amounts don't exceed total
-        let total_distributed = recipient_amount.checked_add(sender_amount)
-            .ok_or(StreamError::Overflow)?;
-        
-        if total_distributed > stream.remaining_balance {
-            return Err(StreamError::Overflow);
-        }
-
-        let token = soroban_sdk::token::Client::new(&env, &stream.token_address);
-
-        // Transfer owed amount to recipient
-        if recipient_amount > 0 {
-            token.transfer(&env.current_contract_address(), &stream.recipient, &recipient_amount);
-        }
-        
-        // Refund unvested amount to sender
-        if sender_amount > 0 {
-            token.transfer(&env.current_contract_address(), &stream.sender, &sender_amount);
-        }
-
-        // Mark stream as cancelled instead of removing
-        stream.is_cancelled = true;
-        stream.remaining_balance = 0;
-        env.storage().persistent().set(&key, &stream);
-
-        // Publish StreamCancelled event
-        env.events().publish(
-            (Symbol::new(&env, "stream_cancelled"), stream.sender, stream_id),
+            (Symbol::new(&env, "work_started"), stream.recipient, stream_id),
             (),
         );
 
         Ok(())
     }
 
-    /// Retrieves stream details by ID
-    pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, StreamError> {
-        env.storage().persistent()
-            .get(&DataKey::Stream(stream_id))
-            .ok_or(StreamError::StreamNotFound)
+    /// Builder stops working (clock stops, earnings accrued)
+    pub fn stop_work(env: Env, stream_id: u64) -> Result<(), StreamError> {
+        let key = DataKey::Stream(stream_id);
+        let mut stream: Stream = env.storage().persistent().get(&key).ok_or(StreamError::StreamNotFound)?;
+
+        stream.recipient.require_auth();
+
+        if !stream.is_running {
+            return Err(StreamError::StreamNotRunning);
+        }
+
+        Self::update_accrual(&env, &mut stream)?;
+        stream.is_running = false;
+
+        env.storage().persistent().set(&key, &stream);
+
+        env.events().publish(
+            (Symbol::new(&env, "work_stopped"), stream.recipient, stream_id),
+            stream.total_accrued,
+        );
+
+        Ok(())
     }
 
-    /// Returns the next available stream ID
+    /// Withdraws earned funds
+    pub fn withdraw(env: Env, stream_id: u64, amount: i128) -> Result<(), StreamError> {
+        let key = DataKey::Stream(stream_id);
+        let mut stream: Stream = env.storage().persistent().get(&key).ok_or(StreamError::StreamNotFound)?;
+
+        stream.recipient.require_auth();
+
+        if stream.is_cancelled {
+            return Err(StreamError::StreamCancelled);
+        }
+        if amount <= 0 {
+            return Err(StreamError::InvalidAmount);
+        }
+
+        // Update accrual to get latest earnings
+        if stream.is_running {
+            Self::update_accrual(&env, &mut stream)?;
+        }
+
+        // Calculate available to withdraw
+        // Available = Total Accrued - Already Withdrawn
+        // Already Withdrawn = Deposit - Remaining Balance
+        // So: Available = Total Accrued - (Deposit - Remaining Balance)
+        //               = Total Accrued - Deposit + Remaining Balance
+        let withdrawn = stream.deposit.checked_sub(stream.remaining_balance).ok_or(StreamError::Overflow)?;
+        let available = stream.total_accrued.checked_sub(withdrawn).ok_or(StreamError::Overflow)?;
+
+        if amount > available {
+            return Err(StreamError::WithdrawExceedsAvailable);
+        }
+
+        let token = soroban_sdk::token::Client::new(&env, &stream.token_address);
+        token.transfer(&env.current_contract_address(), &stream.recipient, &amount);
+
+        stream.remaining_balance = stream.remaining_balance.checked_sub(amount).ok_or(StreamError::Overflow)?;
+        
+        env.storage().persistent().set(&key, &stream);
+
+        env.events().publish(
+            (Symbol::new(&env, "withdraw"), stream.recipient, stream_id),
+            amount,
+        );
+
+        Ok(())
+    }
+
+    /// Admin cancels stream, refunds unearned budget
+    pub fn cancel_stream(env: Env, stream_id: u64) -> Result<(), StreamError> {
+        let key = DataKey::Stream(stream_id);
+        let mut stream: Stream = env.storage().persistent().get(&key).ok_or(StreamError::StreamNotFound)?;
+
+        stream.sender.require_auth();
+
+        if stream.is_cancelled {
+            return Err(StreamError::AlreadyCanceled);
+        }
+
+        // Finalize accrual
+        if stream.is_running {
+            Self::update_accrual(&env, &mut stream)?;
+            stream.is_running = false;
+        }
+
+        // Calculate refund
+        // Builder keeps: Total Accrued
+        // Admin gets: Remaining Balance - (Total Accrued - Already Withdrawn)
+        //           = Remaining Balance - Total Accrued + Already Withdrawn
+        //           = Remaining Balance - Total Accrued + (Deposit - Remaining Balance)
+        //           = Deposit - Total Accrued
+        // Wait, simpler:
+        // Contract holds: Remaining Balance
+        // Builder owns: (Total Accrued - Already Withdrawn)
+        // Admin owns: Remaining Balance - Builder's Share
+        
+        let withdrawn = stream.deposit.checked_sub(stream.remaining_balance).ok_or(StreamError::Overflow)?;
+        let builder_share_remaining = stream.total_accrued.checked_sub(withdrawn).ok_or(StreamError::Overflow)?;
+        let admin_refund = stream.remaining_balance.checked_sub(builder_share_remaining).ok_or(StreamError::Overflow)?;
+
+        let token = soroban_sdk::token::Client::new(&env, &stream.token_address);
+
+        // Send builder their share
+        if builder_share_remaining > 0 {
+            token.transfer(&env.current_contract_address(), &stream.recipient, &builder_share_remaining);
+        }
+
+        // Send admin refund
+        if admin_refund > 0 {
+            token.transfer(&env.current_contract_address(), &stream.sender, &admin_refund);
+        }
+
+        stream.is_cancelled = true;
+        stream.remaining_balance = 0;
+        
+        env.storage().persistent().set(&key, &stream);
+
+        env.events().publish(
+            (Symbol::new(&env, "cancelled"), stream.sender, stream_id),
+            admin_refund,
+        );
+
+        Ok(())
+    }
+
+    /// Helper to update accrued amount based on time passed
+    fn update_accrual(env: &Env, stream: &mut Stream) -> Result<(), StreamError> {
+        let current_time = env.ledger().timestamp();
+        let elapsed = current_time.checked_sub(stream.last_update_time).unwrap_or(0);
+        
+        if elapsed > 0 {
+            let earned = stream.rate_per_second.checked_mul(elapsed as i128).ok_or(StreamError::Overflow)?;
+            stream.total_accrued = stream.total_accrued.checked_add(earned).ok_or(StreamError::Overflow)?;
+            
+            // Cap at deposit
+            if stream.total_accrued > stream.deposit {
+                stream.total_accrued = stream.deposit;
+            }
+            
+            stream.last_update_time = current_time;
+        }
+        Ok(())
+    }
+
+    pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, StreamError> {
+        env.storage().persistent().get(&DataKey::Stream(stream_id)).ok_or(StreamError::StreamNotFound)
+    }
+
     pub fn get_next_stream_id(env: Env) -> u64 {
         env.storage().instance().get(&DataKey::NextStreamId).unwrap_or(0u64)
-    }
-
-    /// Gets the current status of a stream
-    pub fn get_stream_status(env: Env, stream_id: u64) -> Result<StreamStatus, StreamError> {
-        let stream: Stream = env.storage().persistent()
-            .get(&DataKey::Stream(stream_id))
-            .ok_or(StreamError::StreamNotFound)?;
-        
-        // Check cancelled first (highest priority)
-        if stream.is_cancelled {
-            return Ok(StreamStatus::Cancelled);
-        }
-        
-        let current_time = env.ledger().timestamp();
-        
-        // Check if upcoming
-        if current_time < stream.start_time {
-            return Ok(StreamStatus::Upcoming);
-        }
-        
-        // Check if completed (past stop_time AND almost all funds withdrawn)
-        // Allow for dust amounts (< 10 stroops = 0.000001 XLM)
-        if current_time >= stream.stop_time && stream.remaining_balance < 10 {
-            return Ok(StreamStatus::Completed);
-        }
-        
-        // Otherwise it's active
-        Ok(StreamStatus::Active)
     }
 }
 

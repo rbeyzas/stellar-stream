@@ -142,6 +142,8 @@ exports.Prisma.TaskScalarFieldEnum = {
   location: 'location',
   date: 'date',
   budget: 'budget',
+  streamDuration: 'streamDuration',
+  streamId: 'streamId',
   status: 'status',
   createdById: 'createdById',
   createdAt: 'createdAt',

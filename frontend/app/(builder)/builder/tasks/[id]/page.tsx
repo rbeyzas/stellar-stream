@@ -15,6 +15,7 @@ export default function BuilderTaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,10 +36,13 @@ export default function BuilderTaskDetailPage() {
           );
           if (applicationsRes.ok) {
             const applicationsData = await applicationsRes.json();
-            const applied = applicationsData.some(
-              (app: { task: { id: string } }) => app.task.id === id,
+            const myApplication = applicationsData.find(
+              (app: { task: { id: string }; status: string }) => app.task.id === id,
             );
-            setHasApplied(applied);
+            if (myApplication) {
+              setHasApplied(true);
+              setApplicationStatus(myApplication.status);
+            }
           }
         }
       } catch (e) {
@@ -73,6 +77,32 @@ export default function BuilderTaskDetailPage() {
       </div>
     );
   }
+
+  const handleStartTask = async () => {
+    if (!confirm('Are you ready to start this task? The admin will be notified to fund the stream.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tasks/${id}/start`, {
+        method: 'POST',
+      });
+
+      if (res.ok) {
+        alert('Task started! Waiting for admin approval to fund the stream.');
+        // Refresh task data
+        const taskRes = await fetch(`/api/tasks/${id}`);
+        const taskData = await taskRes.json();
+        setTask(taskData);
+      } else {
+        const error = await res.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (e) {
+      console.error('Error starting task', e);
+      alert('Failed to start task');
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -188,7 +218,7 @@ export default function BuilderTaskDetailPage() {
         </motion.div>
       </div>
 
-      {/* Apply Button */}
+      {/* Action Buttons */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -198,20 +228,45 @@ export default function BuilderTaskDetailPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">
-              {hasApplied ? 'Application Submitted' : 'Ready to apply?'}
+              {hasApplied
+                ? task.status === 'In Progress'
+                  ? 'Task in Progress'
+                  : applicationStatus === 'Approved'
+                    ? 'Application Approved'
+                    : 'Application Submitted'
+                : 'Ready to apply?'}
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               {hasApplied
-                ? 'You have already applied to this task. Check My Applications for status updates.'
+                ? task.status === 'In Progress'
+                  ? 'This task is currently active. Check your Stream Dashboard for earnings.'
+                  : applicationStatus === 'Approved'
+                    ? 'Your application has been approved! You can now start the task.'
+                    : 'You have already applied to this task. Check My Applications for status updates.'
                 : 'Submit your application and showcase your skills'}
             </p>
           </div>
           {hasApplied ? (
-            <Link href="/builder/my-applications" className="w-full sm:w-auto">
-              <button className="w-full px-8 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-default">
-                Already Applied
+            task.status === 'In Progress' ? (
+              <Link href="/builder/stream" className="w-full sm:w-auto">
+                <button className="w-full px-8 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                  Go to Stream Dashboard
+                </button>
+              </Link>
+            ) : applicationStatus === 'Approved' ? (
+              <button
+                onClick={handleStartTask}
+                className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors hover:shadow-lg"
+              >
+                Start Task
               </button>
-            </Link>
+            ) : (
+              <Link href="/builder/my-applications" className="w-full sm:w-auto">
+                <button className="w-full px-8 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-default">
+                  View Application Status
+                </button>
+              </Link>
+            )
           ) : (
             <button
               onClick={() => setIsApplyModalOpen(true)}
@@ -231,6 +286,7 @@ export default function BuilderTaskDetailPage() {
         taskTitle={task.title}
         onSuccess={() => {
           setHasApplied(true);
+          setApplicationStatus('Pending');
           alert('Application submitted successfully! Check My Applications to track your status.');
         }}
       />

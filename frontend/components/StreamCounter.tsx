@@ -8,6 +8,8 @@ interface StreamCounterProps {
   stopTime: number;
   ratePerSecond: number;
   withdrawn: number;
+  baseEarned?: number;
+  maxAmount?: number;
   isRecipient: boolean;
   tokenSymbol: string;
 }
@@ -17,6 +19,8 @@ export default function StreamCounter({
   stopTime,
   ratePerSecond,
   withdrawn,
+  baseEarned = 0,
+  maxAmount,
   isRecipient,
   tokenSymbol,
 }: StreamCounterProps) {
@@ -26,24 +30,39 @@ export default function StreamCounter({
     const interval = setInterval(() => {
       const now = Date.now() / 1000;
       
+      // If rate is 0 (paused), just show baseEarned - withdrawn
+      if (ratePerSecond === 0) {
+          const totalVested = baseEarned;
+          const cappedVested = maxAmount ? Math.min(totalVested, maxAmount) : totalVested;
+          
+          if (isRecipient) {
+              setBalance(Math.max(0, cappedVested - withdrawn));
+          } else {
+              setBalance(cappedVested);
+          }
+          return;
+      }
+
       if (now < startTime) {
-        setBalance(0);
+        setBalance(Math.max(0, baseEarned - withdrawn));
         return;
       }
 
       const elapsed = Math.min(now, stopTime) - startTime;
-      const totalVested = elapsed * ratePerSecond;
+      const currentSession = Math.max(0, elapsed * ratePerSecond);
+      const totalVested = baseEarned + currentSession;
+      const cappedVested = maxAmount ? Math.min(totalVested, maxAmount) : totalVested;
       
       if (isRecipient) {
-        setBalance(Math.max(0, totalVested - withdrawn));
+        setBalance(Math.max(0, cappedVested - withdrawn));
       } else {
         // For sender, show total amount that has been streamed (vested)
-        setBalance(totalVested);
+        setBalance(cappedVested);
       }
     }, 50); // Update 20 times per second for smoothness
 
     return () => clearInterval(interval);
-  }, [startTime, stopTime, ratePerSecond, withdrawn, isRecipient]);
+  }, [startTime, stopTime, ratePerSecond, withdrawn, baseEarned, maxAmount, isRecipient]);
 
   return (
     <div className="text-center">
@@ -59,7 +78,7 @@ export default function StreamCounter({
         {balance.toFixed(7)} <span className="text-lg text-slate-500">{tokenSymbol}</span>
       </motion.div>
       <div className="text-xs text-slate-500 mt-1">
-        + {ratePerSecond.toFixed(7)} / sec
+        {ratePerSecond > 0 ? `+ ${ratePerSecond.toFixed(7)} / sec` : 'Paused'}
       </div>
     </div>
   );
