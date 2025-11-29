@@ -1,63 +1,81 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { DollarSign, CheckCircle, Loader2 } from 'lucide-react';
 
 interface PaymentHistoryItem {
   id: string;
   taskTitle: string;
   date: string;
   amount: number;
-  status: 'Paid' | 'Pending';
+  status: string;
 }
 
-// Mock data
-const paymentHistory: PaymentHistoryItem[] = [
-  {
-    id: '1',
-    taskTitle: 'Smart Contract Workshop',
-    date: '2025-01-20',
-    amount: 500,
-    status: 'Paid',
-  },
-  {
-    id: '2',
-    taskTitle: 'Web3 Hackathon Mentorship',
-    date: '2025-01-12',
-    amount: 800,
-    status: 'Paid',
-  },
-  {
-    id: '3',
-    taskTitle: 'Blockchain Developer Meetup',
-    date: '2024-12-28',
-    amount: 400,
-    status: 'Paid',
-  },
-  {
-    id: '4',
-    taskTitle: 'Web3 Community Meetup',
-    date: 'Pending',
-    amount: 300,
-    status: 'Pending',
-  },
-  {
-    id: '5',
-    taskTitle: 'Blockchain Workshop Series',
-    date: 'Pending',
-    amount: 600,
-    status: 'Pending',
-  },
-];
+interface Submission {
+  id: string;
+  status: string;
+  amount: number | null;
+  createdAt: string;
+  updatedAt: string;
+  task: {
+    title: string;
+  };
+}
 
 export default function EarningsPage() {
-  const totalEarnings = 8450;
-  const thisMonthEarnings = 500;
-  const pendingEarnings = 900;
-  const completedTasks = 12;
+  const [isLoading, setIsLoading] = useState(true);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
 
-  const paidPayments = paymentHistory.filter((p) => p.status === 'Paid');
-  const pendingPayments = paymentHistory.filter((p) => p.status === 'Pending');
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch(`/api/submissions?builderEmail=${userEmail}`);
+        if (response.ok) {
+          const submissions: Submission[] = await response.json();
+          
+          // Filter for approved/paid submissions
+          const paidSubmissions = submissions.filter(
+            (s) => s.status === 'Approved' && s.amount !== null
+          );
+
+          const history: PaymentHistoryItem[] = paidSubmissions.map((s) => ({
+            id: s.id,
+            taskTitle: s.task.title,
+            date: s.updatedAt, // Use updatedAt as payment date
+            amount: s.amount || 0,
+            status: 'Paid',
+          }));
+
+          setPaymentHistory(history);
+          setTotalEarnings(history.reduce((sum, item) => sum + item.amount, 0));
+          setCompletedTasks(history.length);
+        }
+      } catch (error) {
+        console.error('Error fetching earnings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEarnings();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -68,7 +86,7 @@ export default function EarningsPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Total Earnings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -81,49 +99,15 @@ export default function EarningsPage() {
               <DollarSign className="w-5 h-5 text-white" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">${totalEarnings.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-gray-900">{totalEarnings.toLocaleString()} XLM</p>
           <p className="text-sm text-gray-500 mt-1">All time</p>
-        </motion.div>
-
-        {/* This Month */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">This Month</h3>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">${thisMonthEarnings}</p>
-          <p className="text-sm text-green-600 mt-1">+12% from last month</p>
-        </motion.div>
-
-        {/* Pending */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">Pending</h3>
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">${pendingEarnings}</p>
-          <p className="text-sm text-gray-500 mt-1">{pendingPayments.length} payments</p>
         </motion.div>
 
         {/* Completed Tasks */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.1 }}
           className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         >
           <div className="flex items-center justify-between mb-4">
@@ -141,47 +125,45 @@ export default function EarningsPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.2 }}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
       >
         <h2 className="text-xl font-bold text-gray-900 mb-6">Payment History</h2>
 
-        <div className="space-y-3">
-          {paymentHistory.map((payment, index) => (
-            <motion.div
-              key={payment.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + index * 0.05 }}
-              className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0"
-            >
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{payment.taskTitle}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {payment.status === 'Paid'
-                    ? new Date(payment.date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : payment.date}
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <span className="text-xl font-bold text-gray-900">${payment.amount}</span>
-                <span
-                  className={`px-3 py-1 rounded text-xs font-semibold ${
-                    payment.status === 'Paid'
-                      ? 'bg-red-500 text-red-900'
-                      : 'bg-yellow-500 text-yellow-900'
-                  }`}
-                >
-                  {payment.status}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {paymentHistory.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No payments received yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {paymentHistory.map((payment, index) => (
+              <motion.div
+                key={payment.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + index * 0.05 }}
+                className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0"
+              >
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">{payment.taskTitle}</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {new Date(payment.date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="text-xl font-bold text-gray-900">{payment.amount} XLM</span>
+                  <span className="px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">
+                    {payment.status}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </motion.div>
     </div>
   );

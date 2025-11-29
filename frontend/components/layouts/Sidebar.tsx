@@ -143,12 +143,7 @@ const menuItems: MenuItem[] = [
     icon: User,
     roles: ['builder'],
   },
-  {
-    name: 'Settings',
-    href: '/builder/settings',
-    icon: Settings,
-    roles: ['builder'],
-  },
+
 ];
 
 interface SidebarProps {
