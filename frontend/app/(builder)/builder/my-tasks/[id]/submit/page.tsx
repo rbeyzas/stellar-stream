@@ -3,8 +3,21 @@
 import { use, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Upload, 
+  X, 
+  Loader2, 
+  FileText, 
+  Image as ImageIcon, 
+  Film, 
+  FileSpreadsheet, 
+  File as FileIcon,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface KPI {
   id: string;
@@ -39,6 +52,163 @@ export default function SubmitWorkPage({ params }: { params: Promise<{ id: strin
   const [summary, setSummary] = useState('');
   const [kpiResults, setKpiResults] = useState<KPIResult[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // File type configuration
+  const ACCEPTED_FILE_TYPES = {
+    // Documents
+    'application/pdf': { ext: '.pdf', icon: FileText, color: 'text-red-500' },
+    'application/msword': { ext: '.doc', icon: FileText, color: 'text-blue-500' },
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { ext: '.docx', icon: FileText, color: 'text-blue-500' },
+    
+    // Spreadsheets
+    'text/csv': { ext: '.csv', icon: FileSpreadsheet, color: 'text-green-500' },
+    'application/json': { ext: '.json', icon: FileText, color: 'text-yellow-500' },
+    'application/vnd.ms-excel': { ext: '.xls', icon: FileSpreadsheet, color: 'text-green-500' },
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { ext: '.xlsx', icon: FileSpreadsheet, color: 'text-green-500' },
+    
+    // Images
+    'image/jpeg': { ext: '.jpg', icon: ImageIcon, color: 'text-purple-500' },
+    'image/png': { ext: '.png', icon: ImageIcon, color: 'text-purple-500' },
+    'image/gif': { ext: '.gif', icon: ImageIcon, color: 'text-purple-500' },
+    'image/webp': { ext: '.webp', icon: ImageIcon, color: 'text-purple-500' },
+    'image/svg+xml': { ext: '.svg', icon: ImageIcon, color: 'text-purple-500' },
+    
+    // Videos
+    'video/mp4': { ext: '.mp4', icon: Film, color: 'text-pink-500' },
+    'video/quicktime': { ext: '.mov', icon: Film, color: 'text-pink-500' },
+    'video/x-msvideo': { ext: '.avi', icon: Film, color: 'text-pink-500' },
+    
+    // Text
+    'text/plain': { ext: '.txt', icon: FileText, color: 'text-gray-500' },
+    'text/markdown': { ext: '.md', icon: FileText, color: 'text-gray-500' },
+  };
+
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const MAX_FILES = 10;
+
+  const getFileIcon = (file: File) => {
+    const fileType = ACCEPTED_FILE_TYPES[file.type as keyof typeof ACCEPTED_FILE_TYPES];
+    if (fileType) {
+      return { Icon: fileType.icon, color: fileType.color };
+    }
+    return { Icon: FileIcon, color: 'text-gray-500' };
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return `File size exceeds 50MB limit`;
+    }
+    if (!ACCEPTED_FILE_TYPES[file.type as keyof typeof ACCEPTED_FILE_TYPES]) {
+      return `File type not supported: ${file.type}`;
+    }
+    return null;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      addFiles(newFiles);
+    }
+  };
+
+  const addFiles = (newFiles: File[]) => {
+    if (files.length + newFiles.length > MAX_FILES) {
+      toast.error(`Maximum ${MAX_FILES} files allowed`);
+      return;
+    }
+
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    newFiles.forEach(file => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (errors.length > 0) {
+      errors.forEach(error => toast.error(error));
+    }
+
+    if (validFiles.length > 0) {
+      setFiles([...files, ...validFiles]);
+      toast.success(`${validFiles.length} file(s) added successfully`);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    addFiles(droppedFiles);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+    toast.success('File removed');
+  };
+
+  const handleSubmit = async (isDraft: boolean) => {
+    setSubmitting(true);
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        toast.error('User email not found');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('taskId', id);
+      formData.append('builderEmail', userEmail);
+      formData.append('summary', summary);
+      formData.append('status', isDraft ? 'draft' : 'submitted');
+      formData.append('kpiResults', JSON.stringify(kpiResults));
+
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch('/api/submissions', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast.success(isDraft ? 'Saved as draft!' : 'Submitted for review!');
+        router.push('/builder/my-tasks');
+      } else {
+        toast.error('Failed to submit work');
+      }
+    } catch (error) {
+      console.error('Error submitting work:', error);
+      toast.error('Error submitting work');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -73,55 +243,6 @@ export default function SubmitWorkPage({ params }: { params: Promise<{ id: strin
     const updated = [...kpiResults];
     updated[index][field] = value;
     setKpiResults(updated);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles([...files, ...Array.from(e.target.files)]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (isDraft: boolean) => {
-    setSubmitting(true);
-    try {
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail) {
-        alert('User email not found');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('taskId', id);
-      formData.append('builderEmail', userEmail);
-      formData.append('summary', summary);
-      formData.append('status', isDraft ? 'draft' : 'submitted');
-      formData.append('kpiResults', JSON.stringify(kpiResults));
-
-      files.forEach((file) => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch('/api/submissions', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert(isDraft ? 'Saved as draft!' : 'Submitted for review!');
-        router.push('/builder/my-tasks');
-      } else {
-        alert('Failed to submit work');
-      }
-    } catch (error) {
-      console.error('Error submitting work:', error);
-      alert('Error submitting work');
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -236,11 +357,24 @@ export default function SubmitWorkPage({ params }: { params: Promise<{ id: strin
           {/* Supporting Files */}
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">Supporting Files</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-700 font-medium mb-2">Upload Photos, Videos, or Documents</p>
+            
+            {/* Drag and Drop Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                isDragging
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-gray-300 hover:border-purple-400'
+              }`}
+            >
+              <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-purple-500' : 'text-gray-400'}`} />
+              <p className="text-gray-700 font-medium mb-2">
+                {isDragging ? 'Drop files here' : 'Upload Files'}
+              </p>
               <p className="text-sm text-gray-500 mb-4">
-                Click to browse or drag and drop files here
+                Drag and drop or click to browse
               </p>
               <input
                 type="file"
@@ -248,35 +382,77 @@ export default function SubmitWorkPage({ params }: { params: Promise<{ id: strin
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload"
+                accept={Object.keys(ACCEPTED_FILE_TYPES).join(',')}
               />
               <label htmlFor="file-upload">
-                <span className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border hover:bg-gray-200 cursor-pointer">
+                <span className="inline-block px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all cursor-pointer">
                   Choose Files
                 </span>
               </label>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Upload photos from the event, presentation slides, social media screenshots, or any
-              other relevant documentation.
-            </p>
+
+            {/* Supported File Types */}
+            <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900 mb-1">Supported file types:</p>
+                  <p className="text-xs text-blue-700">
+                    <strong>Documents:</strong> PDF, DOC, DOCX, TXT, MD<br />
+                    <strong>Spreadsheets:</strong> CSV, JSON, XLS, XLSX<br />
+                    <strong>Images:</strong> JPG, PNG, GIF, WEBP, SVG<br />
+                    <strong>Videos:</strong> MP4, MOV, AVI<br />
+                    <strong>Max size:</strong> 50MB per file | <strong>Max files:</strong> {MAX_FILES}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* File List */}
             {files.length > 0 && (
               <div className="mt-4 space-y-2">
-                {files.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-700">
+                    {files.length} file(s) selected
+                  </p>
+                  <button
+                    onClick={() => {
+                      setFiles([]);
+                      toast.success('All files removed');
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700 font-medium"
                   >
-                    <span className="text-sm text-gray-700 truncate flex-1">{file.name}</span>
-                    <button
-                      onClick={() => removeFile(index)}
-                      className="ml-2 p-1 hover:bg-gray-200 rounded transition-colors"
+                    Remove All
+                  </button>
+                </div>
+                {files.map((file, index) => {
+                  const { Icon, color } = getFileIcon(file);
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-all group"
                     >
-                      <X className="w-4 h-4 text-gray-500" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className={`w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`w-5 h-5 ${color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="ml-2 p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <X className="w-4 h-4 text-red-500" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -286,9 +462,19 @@ export default function SubmitWorkPage({ params }: { params: Promise<{ id: strin
             <button
               onClick={() => handleSubmit(false)}
               disabled={submitting || !summary.trim()}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {submitting ? 'Submitting...' : 'Submit for Review'}
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Submit for Review</span>
+                </>
+              )}
             </button>
             <button
               onClick={() => handleSubmit(true)}

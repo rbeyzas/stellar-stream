@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Task, KPI } from '@/types/task';
 import ApplyModal from '@/components/ApplyModal';
+import { toast } from 'sonner';
 
 export default function BuilderTaskDetailPage() {
   const params = useParams();
@@ -79,28 +80,24 @@ export default function BuilderTaskDetailPage() {
   }
 
   const handleStartTask = async () => {
-    if (!confirm('Are you ready to start this task? The admin will be notified to fund the stream.')) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/tasks/${id}/start`, {
         method: 'POST',
       });
 
       if (res.ok) {
-        alert('Task started! Waiting for admin approval to fund the stream.');
+        toast.success('Task started! Waiting for admin approval to fund the stream.');
         // Refresh task data
         const taskRes = await fetch(`/api/tasks/${id}`);
         const taskData = await taskRes.json();
         setTask(taskData);
       } else {
         const error = await res.json();
-        alert(`Error: ${error.error}`);
+        toast.error(`Error: ${error.error}`);
       }
     } catch (e) {
       console.error('Error starting task', e);
-      alert('Failed to start task');
+      toast.error('Failed to start task');
     }
   };
 
@@ -287,7 +284,7 @@ export default function BuilderTaskDetailPage() {
         onSuccess={() => {
           setHasApplied(true);
           setApplicationStatus('Pending');
-          alert('Application submitted successfully! Check My Applications to track your status.');
+          toast.success('Application submitted successfully! Check My Applications to track your status.');
         }}
       />
     </div>

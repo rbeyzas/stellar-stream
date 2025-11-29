@@ -123,15 +123,6 @@ export default function SignInPage() {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-700">
-            <p className="text-xs text-gray-400 text-center mb-2">Demo credentials:</p>
-            <p className="text-xs text-gray-400 text-center">
-              Use any email with &quot;admin&quot; for admin role, or any
-            </p>
-            <p className="text-xs text-gray-400 text-center">other email for ambassador role</p>
-          </div>
         </div>
       </motion.div>
     </div>
