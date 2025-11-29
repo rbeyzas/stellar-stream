@@ -155,12 +155,14 @@ interface SidebarProps {
   userRole: UserRole;
   walletAddress?: string;
   userEmail?: string;
+  onConnectWallet?: () => Promise<void>;
 }
 
 export default function Sidebar({
   userRole,
   walletAddress: initialWalletAddress,
   userEmail,
+  onConnectWallet,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | undefined>(initialWalletAddress);
@@ -250,7 +252,11 @@ export default function Sidebar({
             <WalletConnect
               onConnect={(address) => {
                 setWalletAddress(address);
+                localStorage.setItem('walletAddress', address);
                 console.log('Wallet connected:', address);
+                if (onConnectWallet) {
+                  onConnectWallet();
+                }
               }}
             />
           </div>

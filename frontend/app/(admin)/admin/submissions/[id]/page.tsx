@@ -22,6 +22,7 @@ import {
   Briefcase,
   Loader2,
 } from 'lucide-react';
+import PaymentModal from '@/components/PaymentModal';
 
 interface Builder {
   id: string;
@@ -105,6 +106,35 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
   const [reviewNotes, setReviewNotes] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adminWalletAddress, setAdminWalletAddress] = useState<string>(() => {
+    // Lazy initialization from localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('walletAddress') || '';
+    }
+    return '';
+  });
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Listen for wallet changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (typeof window !== 'undefined') {
+        const wallet = localStorage.getItem('walletAddress') || '';
+        setAdminWalletAddress(wallet);
+      }
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check periodically in case wallet was just connected
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchSubmission = async () => {
@@ -128,30 +158,33 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
     fetchSubmission();
   }, [id]);
 
-  const handleApprove = async () => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/submissions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'Approved',
-          reviewNotes,
-          amount: parseFloat(paymentAmount),
-        }),
-      });
-
-      if (response.ok) {
-        router.push('/admin/submissions');
-      }
-    } catch (error) {
-      console.error('Error approving submission:', error);
-      setIsSubmitting(false);
+  const handleApprove = () => {
+    if (!adminWalletAddress) {
+      alert('Please connect your wallet first to process payment');
+      return;
     }
+
+    if (!submission?.builder.walletAddress) {
+      alert(
+        'Builder wallet address not found. Please ask builder to add wallet address in their profile.'
+      );
+      return;
+    }
+
+    setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setIsPaymentModalOpen(false);
+    router.push('/admin/submissions');
   };
 
   const handleReject = async () => {
-    if (!confirm('Are you sure you want to reject this submission?')) return;
+    if (!reviewNotes.trim()) {
+      alert('Please provide review notes before rejecting');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/submissions/${id}`, {
@@ -503,6 +536,22 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
           </motion.div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {submission && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          submissionId={id}
+          builderWallet={submission.builder.walletAddress || ''}
+          builderName={submission.builder.name || submission.builder.email}
+          taskTitle={submission.task.title}
+          amount={paymentAmount}
+          reviewNotes={reviewNotes}
+          adminWallet={adminWalletAddress}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 }

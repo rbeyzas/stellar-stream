@@ -1,14 +1,21 @@
 'use client';
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import Sidebar from '@/components/layouts/Sidebar';
+import { connectWallet } from '@/lib/stellar';
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const walletAddress = 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+  const [walletAddress, setWalletAddress] = useState<string>(() => {
+    // Lazy initialization - only runs once on mount
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('walletAddress') || '';
+    }
+    return '';
+  });
 
   const userEmail = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -17,9 +24,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return '';
   }, []);
 
+  const handleWalletConnect = async () => {
+    const address = await connectWallet();
+    if (address) {
+      setWalletAddress(address);
+      localStorage.setItem('walletAddress', address);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar userRole="admin" walletAddress={walletAddress} userEmail={userEmail} />
+      <Sidebar 
+        userRole="admin" 
+        walletAddress={walletAddress} 
+        userEmail={userEmail}
+        onConnectWallet={handleWalletConnect}
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-6">{children}</div>
       </main>
