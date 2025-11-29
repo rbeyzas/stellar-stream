@@ -1,142 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Calendar, File } from 'lucide-react';
-import { Submission } from '@/types/submission';
+import { Search, MapPin, Calendar, File, Loader2 } from 'lucide-react';
 
-// Mock data
-const mockSubmissions: Submission[] = [
-  {
-    id: '1',
-    builderId: 'user1',
-    builderName: 'Marcus Rodriguez',
-    builderEmail: 'builder1@example.com',
-    builderAvatar: 'MR',
-    taskId: '3',
-    taskTitle: 'Web3 Community Meetup',
-    taskLocation: 'Austin, TX',
-    taskDate: '2025-02-28',
-    taskBudget: 300,
-    workSummary: 'Successfully organized and hosted the Web3 Community Meetup in Austin...',
-    kpiResults: [
-      { name: 'Attendees', target: '50+', achieved: '65', status: 'Achieved' },
-      { name: 'New Community Members', target: '20', achieved: '28', status: 'Achieved' },
-    ],
-    supportingFiles: [
-      { id: '1', name: 'event-photos-1.jpg', size: '2.3 MB', type: 'image/jpeg', url: '#' },
-      { id: '2', name: 'event-photos-2.jpg', size: '1.8 MB', type: 'image/jpeg', url: '#' },
-      {
-        id: '3',
-        name: 'presentation-slides.pdf',
-        size: '5.2 MB',
-        type: 'application/pdf',
-        url: '#',
-      },
-      { id: '4', name: 'event-highlight.mp4', size: '45.8 MB', type: 'video/mp4', url: '#' },
-      {
-        id: '5',
-        name: 'attendee-list.xlsx',
-        size: '125 KB',
-        type: 'application/vnd.ms-excel',
-        url: '#',
-      },
-      {
-        id: '6',
-        name: 'social-media-analytics.pdf',
-        size: '1.2 MB',
-        type: 'application/pdf',
-        url: '#',
-      },
-    ],
-    status: 'Pending Review',
-    submittedAt: '2025-03-01',
-    completedTasks: 12,
-    totalEarnings: 8450,
-    successRate: 95,
-    qualityScore: 92,
-  },
-  {
-    id: '2',
-    builderId: 'user2',
-    builderName: 'Emily Zhang',
-    builderEmail: 'builder2@example.com',
-    builderAvatar: 'EZ',
-    taskId: '4',
-    taskTitle: 'Blockchain Workshop Series',
-    taskLocation: 'Online',
-    taskDate: '2025-03-05',
-    taskBudget: 600,
-    workSummary: 'Delivered comprehensive blockchain workshop series covering smart contracts...',
-    kpiResults: [
-      { name: 'Workshop Attendance', target: '100', achieved: '142', status: 'Achieved' },
-      { name: 'Participant Satisfaction', target: '80%', achieved: '88%', status: 'Achieved' },
-    ],
-    supportingFiles: [
-      { id: '7', name: 'workshop-recording-1.mp4', size: '512 MB', type: 'video/mp4', url: '#' },
-      { id: '8', name: 'workshop-recording-2.mp4', size: '485 MB', type: 'video/mp4', url: '#' },
-      { id: '9', name: 'event-photos-1.jpg', size: '3.5 MB', type: 'image/jpeg', url: '#' },
-      { id: '10', name: 'feedback-summary.pdf', size: '890 KB', type: 'application/pdf', url: '#' },
-      { id: '11', name: 'code-examples.zip', size: '12.4 MB', type: 'application/zip', url: '#' },
-      {
-        id: '12',
-        name: 'attendee-list.xlsx',
-        size: '156 KB',
-        type: 'application/vnd.ms-excel',
-        url: '#',
-      },
-    ],
-    status: 'Pending Review',
-    submittedAt: '2025-03-07',
-    completedTasks: 8,
-    totalEarnings: 5200,
-    successRate: 88,
-    qualityScore: 85,
-  },
-  {
-    id: '3',
-    builderId: 'user3',
-    builderName: 'Alex Kim',
-    builderEmail: 'builder3@example.com',
-    builderAvatar: 'AK',
-    taskId: '5',
-    taskTitle: 'Smart Contract Workshop',
-    taskLocation: 'Boston, MA',
-    taskDate: '2025-01-15',
-    taskBudget: 500,
-    workSummary: 'Conducted hands-on smart contract development workshop...',
-    kpiResults: [
-      { name: 'Attendees', target: '40+', achieved: '52', status: 'Achieved' },
-      { name: 'Code Quality', target: 'Good', achieved: 'Excellent', status: 'Achieved' },
-    ],
-    supportingFiles: [
-      { id: '13', name: 'event-photos-1.jpg', size: '2.1 MB', type: 'image/jpeg', url: '#' },
-      { id: '14', name: 'event-photos-2.jpg', size: '1.9 MB', type: 'image/jpeg', url: '#' },
-      { id: '15', name: 'workshop-slides.pdf', size: '4.8 MB', type: 'application/pdf', url: '#' },
-      {
-        id: '16',
-        name: 'participant-feedback.pdf',
-        size: '680 KB',
-        type: 'application/pdf',
-        url: '#',
-      },
-      { id: '17', name: 'code-samples.zip', size: '8.5 MB', type: 'application/zip', url: '#' },
-      { id: '18', name: 'attendance-sheet.pdf', size: '245 KB', type: 'application/pdf', url: '#' },
-    ],
-    status: 'Approved',
-    submittedAt: '2025-01-17',
-    reviewedAt: '2025-01-20',
-    paymentAmount: 500,
-    completedTasks: 15,
-    totalEarnings: 9800,
-    successRate: 100,
-    qualityScore: 95,
-  },
-];
+interface KPIResult {
+  id: string;
+  name: string;
+  target: string;
+  achieved: string;
+  status: string;
+}
+
+interface SupportingFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  url: string;
+}
+
+interface Submission {
+  id: string;
+  builderId: string;
+  taskId: string;
+  workSummary: string;
+  status: string;
+  createdAt: string;
+  reviewedAt?: string;
+  amount?: number;
+  builder: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+  task: {
+    id: string;
+    title: string;
+    location: string | null;
+    date: string | null;
+    budget: number;
+  };
+  kpiResults: KPIResult[];
+  supportingFiles: SupportingFile[];
+}
 
 const statusColors = {
   'Pending Review': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  draft: 'bg-gray-100 text-gray-800 border-gray-200',
   Approved: 'bg-green-100 text-green-800 border-green-200',
   Rejected: 'bg-red-100 text-red-800 border-red-200',
   'Revision Requested': 'bg-blue-100 text-blue-800 border-blue-200',
@@ -145,19 +57,49 @@ const statusColors = {
 export default function SubmissionsPage() {
   const [activeTab, setActiveTab] = useState<'Pending Review' | 'Reviewed'>('Pending Review');
   const [searchQuery, setSearchQuery] = useState('');
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingSubmissions = mockSubmissions.filter((sub) => sub.status === 'Pending Review');
-  const reviewedSubmissions = mockSubmissions.filter((sub) => sub.status !== 'Pending Review');
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const response = await fetch('/api/submissions');
+        if (response.ok) {
+          const data = await response.json();
+          setSubmissions(data);
+        }
+      } catch (error) {
+        console.error('Error fetching submissions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmissions();
+  }, []);
+
+  const pendingSubmissions = submissions.filter((sub) => sub.status === 'Pending Review');
+  const reviewedSubmissions = submissions.filter(
+    (sub) => sub.status !== 'Pending Review' && sub.status !== 'draft',
+  );
 
   const currentSubmissions =
     activeTab === 'Pending Review' ? pendingSubmissions : reviewedSubmissions;
 
   const filteredSubmissions = currentSubmissions.filter(
     (sub) =>
-      sub.builderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.taskTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.builderEmail.toLowerCase().includes(searchQuery.toLowerCase()),
+      (sub.builder.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      sub.task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sub.builder.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,42 +173,57 @@ export default function SubmissionsPage() {
                 <div className="flex items-start space-x-4 flex-1">
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">{submission.builderAvatar}</span>
+                    <span className="text-white font-bold text-lg">
+                      {submission.builder.name
+                        ? submission.builder.name
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')
+                            .toUpperCase()
+                        : submission.builder.email[0].toUpperCase()}
+                    </span>
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-bold text-gray-900">{submission.builderName}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {submission.builder.name || 'Anonymous Builder'}
+                      </h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                          statusColors[submission.status]
+                          statusColors[submission.status as keyof typeof statusColors] ||
+                          statusColors['Pending Review']
                         }`}
                       >
                         {submission.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 mb-3">{submission.builderEmail}</p>
+                    <p className="text-sm text-gray-500 mb-3">{submission.builder.email}</p>
 
                     {/* Task Info */}
                     <div className="mb-3">
                       <p className="text-sm font-semibold text-gray-700 mb-1">Task:</p>
-                      <p className="text-base font-medium text-gray-900">{submission.taskTitle}</p>
+                      <p className="text-base font-medium text-gray-900">{submission.task.title}</p>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center space-x-1">
-                          <MapPin className="w-4 h-4" />
-                          <span>{submission.taskLocation}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(submission.taskDate).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
+                        {submission.task.location && (
+                          <span className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{submission.task.location}</span>
                           </span>
-                        </span>
+                        )}
+                        {submission.task.date && (
+                          <span className="flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(submission.task.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </span>
+                        )}
                         <span className="flex items-center space-x-1">
                           <File className="w-4 h-4" />
                           <span>{submission.supportingFiles.length} files</span>
@@ -277,14 +234,20 @@ export default function SubmissionsPage() {
                     {/* Submitted Date */}
                     <p className="text-xs text-gray-500">
                       Submitted{' '}
-                      {submission.status === 'Pending Review' ? '1 day ago' : '3 days ago'}
+                      {new Date(submission.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
                     </p>
                   </div>
                 </div>
 
                 {/* Right Section */}
                 <div className="flex flex-col items-end space-y-2 ml-4">
-                  <span className="text-lg font-bold text-green-600">${submission.taskBudget}</span>
+                  <span className="text-lg font-bold text-green-600">
+                    ${submission.task.budget.toLocaleString()}
+                  </span>
                   {submission.status === 'Pending Review' ? (
                     <Link href={`/admin/submissions/${submission.id}`}>
                       <button className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:shadow-md transition-all">

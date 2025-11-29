@@ -5,6 +5,7 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 ---
 
 ## 🎯 Features
+
 - **🛑 Cancellable**: Senders can cancel streams and recover remaining funds
 - **🌐 Multi-token Support**: Works with any Stellar asset (XLM, custom tokens)
 - **📱 Modern Frontend**: Built with Next.js 16 + Tailwind CSS + Framer Motion
@@ -38,7 +39,6 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 └── README.md
 ```
 
-
 ## 🔐 Security Features
 
 ### Authorization Checks
@@ -59,19 +59,20 @@ A real-time payment streaming platform built on the **Stellar blockchain** using
 
 The contract uses a comprehensive `StreamError` enum with 12 error types:
 pub enum StreamError {
-    UnauthorizedRecipient = 2,
-    InvalidAmount = 3,
-    InvalidTimeRange = 4,
-    StreamNotStarted = 5,
-    NothingToWithdraw = 6,
-    Overflow = 7,
-    AlreadyCanceled = 8,
-    SenderCannotBeRecipient = 9,
-    StreamNotFound = 10,
-    InvalidStartTime = 11,
-    WithdrawExceedsAvailable = 12,
+UnauthorizedRecipient = 2,
+InvalidAmount = 3,
+InvalidTimeRange = 4,
+StreamNotStarted = 5,
+NothingToWithdraw = 6,
+Overflow = 7,
+AlreadyCanceled = 8,
+SenderCannotBeRecipient = 9,
+StreamNotFound = 10,
+InvalidStartTime = 11,
+WithdrawExceedsAvailable = 12,
 }
-```
+
+````
 
 ---
 
@@ -99,7 +100,7 @@ soroban contract deploy \
   --wasm target/wasm32-unknown-unknown/release/stellar_stream.wasm \
   --network testnet \
   --source YOUR_SECRET_KEY
-```
+````
 
 ### Frontend Setup
 

@@ -58,7 +58,7 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    
+
     try {
       const userEmail = localStorage.getItem('userEmail');
       if (!userEmail) {
@@ -265,7 +265,9 @@ export default function ProfilePage() {
                 onClick={async () => {
                   const userEmail = localStorage.getItem('userEmail');
                   if (userEmail) {
-                    const response = await fetch(`/api/profile?email=${encodeURIComponent(userEmail)}`);
+                    const response = await fetch(
+                      `/api/profile?email=${encodeURIComponent(userEmail)}`,
+                    );
                     if (response.ok) {
                       const user = await response.json();
                       setFormData({

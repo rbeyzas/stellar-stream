@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -19,77 +19,73 @@ import {
   Film,
   FileSpreadsheet,
   Archive,
-  Award,
-  TrendingUp,
   Briefcase,
+  Loader2,
 } from 'lucide-react';
-import { Submission } from '@/types/submission';
 
-// Mock data
-const mockSubmission: Submission = {
-  id: '1',
-  builderId: 'user1',
-  builderName: 'Marcus Rodriguez',
-  builderEmail: 'builder1@example.com',
-  builderAvatar: 'MR',
-  taskId: '3',
-  taskTitle: 'Web3 Community Meetup',
-  taskLocation: 'Austin, TX',
-  taskDate: '2025-02-28',
-  taskBudget: 300,
-  workSummary: `Successfully organized and hosted the Web3 Community Meetup in Austin with excellent turnout and engagement. The event featured three technical presentations on DeFi protocols, NFT marketplaces, and Layer 2 scaling solutions.
+interface Builder {
+  id: string;
+  name: string | null;
+  email: string;
+  walletAddress: string | null;
+}
 
-Key Highlights:
-- Reached 65 attendees (30% above target)
-- Partnered with local Web3 companies for sponsorships
-- Facilitated 8 networking sessions between attendees
-- Live-streamed the event reaching 95+ online participants
-- Collected feedback from 50+ attendees with 88% satisfaction rate
+interface Task {
+  id: string;
+  title: string;
+  location: string | null;
+  date: Date;
+  budget: number;
+}
 
-I have strong connections with the Stanford blockchain community and can ensure excellent attendance. My previous workshops have averaged 40+ attendees with social media reach exceeding 8,000 impressions.`,
-  kpiResults: [
-    { name: 'Attendees', target: '50+', achieved: '65', status: 'Achieved' },
-    { name: 'New Community Members', target: '20', achieved: '28', status: 'Achieved' },
-  ],
-  supportingFiles: [
-    { id: '1', name: 'event-photos-1.jpg', size: '2.3 MB', type: 'image/jpeg', url: '#' },
-    { id: '2', name: 'event-photos-2.jpg', size: '1.8 MB', type: 'image/jpeg', url: '#' },
-    { id: '3', name: 'presentation-slides.pdf', size: '5.2 MB', type: 'application/pdf', url: '#' },
-    { id: '4', name: 'event-highlight.mp4', size: '45.8 MB', type: 'video/mp4', url: '#' },
-    {
-      id: '5',
-      name: 'attendee-list.xlsx',
-      size: '125 KB',
-      type: 'application/vnd.ms-excel',
-      url: '#',
-    },
-    {
-      id: '6',
-      name: 'social-media-analytics.pdf',
-      size: '1.2 MB',
-      type: 'application/pdf',
-      url: '#',
-    },
-  ],
-  status: 'Pending Review',
-  submittedAt: '2025-03-01',
-  completedTasks: 12,
-  totalEarnings: 8450,
-  successRate: 95,
-  qualityScore: 92,
-};
+interface KPIResult {
+  id: string;
+  name: string;
+  target: string;
+  achieved: string;
+  status: string;
+}
 
-const statusColors = {
+interface SupportingFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  url: string;
+}
+
+interface Submission {
+  id: string;
+  workSummary: string;
+  status: string;
+  reviewNotes: string | null;
+  amount: number | null;
+  createdAt: Date;
+  builder: Builder;
+  task: Task;
+  kpiResults: KPIResult[];
+  supportingFiles: SupportingFile[];
+}
+
+const statusColors: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800 border-yellow-200',
   Approved: 'bg-green-100 text-green-800 border-green-200',
   Rejected: 'bg-red-100 text-red-800 border-red-200',
   'Revision Requested': 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
-const kpiStatusColors = {
+const kpiStatusColors: Record<string, string> = {
   Achieved: 'bg-green-100 text-green-800',
   'Not Achieved': 'bg-red-100 text-red-800',
   'Partially Achieved': 'bg-yellow-100 text-yellow-800',
+};
+
+const formatFileSize = (size: string | number): string => {
+  const bytes = typeof size === 'string' ? parseInt(size) : size;
+  if (isNaN(bytes)) return size.toString();
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const getFileIcon = (type: string) => {
@@ -104,27 +100,76 @@ const getFileIcon = (type: string) => {
 export default function SubmissionReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [reviewNotes, setReviewNotes] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState(mockSubmission.taskBudget.toString());
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submission = mockSubmission;
+  useEffect(() => {
+    const fetchSubmission = async () => {
+      try {
+        const response = await fetch(`/api/submissions/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSubmission(data);
+          setPaymentAmount(data.task.budget.toString());
+          if (data.reviewNotes) {
+            setReviewNotes(data.reviewNotes);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching submission:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubmission();
+  }, [id]);
 
   const handleApprove = async () => {
     setIsSubmitting(true);
-    console.log('Approving submission:', id, { reviewNotes, paymentAmount });
-    setTimeout(() => {
-      router.push('/admin/submissions');
-    }, 1000);
+    try {
+      const response = await fetch(`/api/submissions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Approved',
+          reviewNotes,
+          amount: parseFloat(paymentAmount),
+        }),
+      });
+
+      if (response.ok) {
+        router.push('/admin/submissions');
+      }
+    } catch (error) {
+      console.error('Error approving submission:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const handleReject = async () => {
     if (!confirm('Are you sure you want to reject this submission?')) return;
     setIsSubmitting(true);
-    console.log('Rejecting submission:', id, reviewNotes);
-    setTimeout(() => {
-      router.push('/admin/submissions');
-    }, 1000);
+    try {
+      const response = await fetch(`/api/submissions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Rejected',
+          reviewNotes,
+        }),
+      });
+
+      if (response.ok) {
+        router.push('/admin/submissions');
+      }
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const handleRequestRevision = async () => {
@@ -133,11 +178,55 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
       return;
     }
     setIsSubmitting(true);
-    console.log('Requesting revision:', id, reviewNotes);
-    setTimeout(() => {
-      router.push('/admin/submissions');
-    }, 1000);
+    try {
+      const response = await fetch(`/api/submissions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Revision Requested',
+          reviewNotes,
+        }),
+      });
+
+      if (response.ok) {
+        router.push('/admin/submissions');
+      }
+    } catch (error) {
+      console.error('Error requesting revision:', error);
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
+
+  if (!submission) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Submission not found</p>
+          <Link href="/admin/submissions">
+            <button className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+              Back to Submissions
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const builderName = submission.builder.name || submission.builder.email;
+  const builderAvatar =
+    submission.builder.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() || submission.builder.email[0].toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -152,7 +241,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
           <h1 className="text-3xl font-bold text-gray-900">Submission Review</h1>
           <p className="text-gray-500 mt-1">
             Submitted on{' '}
-            {new Date(submission.submittedAt).toLocaleDateString('en-US', {
+            {new Date(submission.createdAt).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
@@ -179,16 +268,16 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
           >
             <h2 className="text-xl font-bold text-gray-900 mb-4">Task Details</h2>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">{submission.taskTitle}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{submission.task.title}</h3>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4" />
-                  <span>{submission.taskLocation}</span>
+                  <span>{submission.task.location || 'Remote'}</span>
                 </span>
                 <span className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {new Date(submission.taskDate).toLocaleDateString('en-US', {
+                    {new Date(submission.task.date).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
@@ -197,7 +286,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                 </span>
                 <span className="flex items-center space-x-2 font-semibold text-green-600">
                   <DollarSign className="w-4 h-4" />
-                  <span>${submission.taskBudget}</span>
+                  <span>${submission.task.budget}</span>
                 </span>
               </div>
             </div>
@@ -227,7 +316,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
           >
             <h2 className="text-xl font-bold text-gray-900 mb-4">KPI Results</h2>
             <div className="space-y-3">
-              {submission.kpiResults.map((kpi, index) => (
+              {submission.kpiResults.map((kpi: KPIResult, index: number) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
@@ -242,7 +331,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      kpiStatusColors[kpi.status]
+                      kpiStatusColors[kpi.status] || 'bg-gray-100 text-gray-800'
                     }`}
                   >
                     {kpi.status}
@@ -263,7 +352,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
               Supporting Files ({submission.supportingFiles.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {submission.supportingFiles.map((file) => {
+              {submission.supportingFiles.map((file: SupportingFile) => {
                 const FileIcon = getFileIcon(file.type);
                 return (
                   <div
@@ -275,11 +364,13 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                      <p className="text-xs text-gray-500">{file.size}</p>
+                      <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <Download className="w-4 h-4 text-gray-600" />
-                    </button>
+                    <a href={file.url} download target="_blank" rel="noopener noreferrer">
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <Download className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </a>
                   </div>
                 );
               })}
@@ -307,10 +398,10 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                     type="number"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Task budget: ${submission.taskBudget}</p>
+                <p className="text-xs text-gray-500 mt-1">Task budget: ${submission.task.budget}</p>
               </div>
 
               <div>
@@ -322,7 +413,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                   onChange={(e) => setReviewNotes(e.target.value)}
                   rows={4}
                   placeholder="Add any notes about your decision..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                 />
               </div>
 
@@ -368,12 +459,12 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
             {/* Avatar and Name */}
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto mb-3">
-                <span className="text-white font-bold text-2xl">{submission.builderAvatar}</span>
+                <span className="text-white font-bold text-2xl">{builderAvatar}</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">{submission.builderName}</h3>
+              <h3 className="text-lg font-bold text-gray-900">{builderName}</h3>
               <p className="text-sm text-gray-500 flex items-center justify-center space-x-1 mt-1">
                 <Mail className="w-4 h-4" />
-                <span>{submission.builderEmail}</span>
+                <span>{submission.builder.email}</span>
               </p>
             </div>
 
@@ -384,44 +475,26 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600 flex items-center space-x-2">
                     <Briefcase className="w-4 h-4" />
-                    <span>Completed Tasks</span>
+                    <span>Wallet Address</span>
                   </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {submission.completedTasks}
+                  <span className="text-sm font-mono text-gray-900 truncate max-w-[150px]">
+                    {submission.builder.walletAddress || 'Not set'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600 flex items-center space-x-2">
                     <DollarSign className="w-4 h-4" />
-                    <span>Total Earnings</span>
+                    <span>Builder ID</span>
                   </span>
-                  <span className="text-sm font-semibold text-green-600">
-                    ${submission.totalEarnings.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600 flex items-center space-x-2">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>Success Rate</span>
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {submission.successRate}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-600 flex items-center space-x-2">
-                    <Award className="w-4 h-4" />
-                    <span>Quality Score</span>
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {submission.qualityScore}/100
+                  <span className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+                    {submission.builder.id}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* View Full Profile Button */}
-            <Link href={`/admin/builders/${submission.builderId}`}>
+            <Link href={`/admin/builders/${submission.builder.id}`}>
               <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <User className="w-4 h-4" />
                 <span>View Full Profile</span>
