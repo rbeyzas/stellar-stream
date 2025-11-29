@@ -36,6 +36,12 @@ export default function PaymentModal({
   const [transactionHash, setTransactionHash] = useState('');
 
   const handlePayment = async () => {
+    if (!StellarSdk.StrKey.isValidEd25519PublicKey(builderWallet)) {
+      setErrorMessage('Invalid builder wallet address. Please check the builder\'s profile.');
+      setStep('error');
+      return;
+    }
+
     setStep('processing');
     setErrorMessage('');
 
@@ -66,7 +72,11 @@ export default function PaymentModal({
         StellarSdk.Networks.TESTNET
       );
 
-      const hash = txResult.hash;
+      if (!txResult) {
+        throw new Error('Transaction failed: No response from server');
+      }
+
+      const hash = (txResult as any).hash;
       setTransactionHash(hash);
 
       // Update submission in database

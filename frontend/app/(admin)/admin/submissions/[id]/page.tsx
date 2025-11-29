@@ -23,6 +23,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
+import * as StellarSdk from '@stellar/stellar-sdk';
 
 interface Builder {
   id: string;
@@ -168,6 +169,11 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
       alert(
         'Builder wallet address not found. Please ask builder to add wallet address in their profile.'
       );
+      return;
+    }
+
+    if (!StellarSdk.StrKey.isValidEd25519PublicKey(submission.builder.walletAddress)) {
+      alert('Builder wallet address is invalid. Please ask builder to correct it.');
       return;
     }
 

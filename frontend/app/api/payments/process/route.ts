@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!submissionId || !amount || !transactionHash) {
       return NextResponse.json(
-        { error: 'Missing required fields: submissionId, amount, transactionHash' },
+        { error: 'Missing required fields', details: 'Missing required fields: submissionId, amount, transactionHash' },
         { status: 400 }
       );
     }
@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!submission) {
-      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Submission not found', details: 'Submission not found' }, { status: 404 });
     }
 
     if (!submission.builder.walletAddress) {
       return NextResponse.json(
-        { error: 'Builder wallet address not found. Please ask builder to add wallet address in profile.' },
+        { error: 'Builder wallet address not found', details: 'Builder wallet address not found. Please ask builder to add wallet address in profile.' },
         { status: 400 }
       );
     }

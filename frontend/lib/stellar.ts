@@ -75,7 +75,7 @@ export const submitTransaction = async (xdr: string, networkPassphrase = TESTNET
     }
 
     if (status === "SUCCESS") {
-        return txResponse;
+        return { ...txResponse, hash };
     } else {
         throw new Error(`Transaction failed: ${status}`);
     }
