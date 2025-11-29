@@ -29,6 +29,7 @@ model User {
   tasks        Task[]
   applications Application[]
   submissions  Submission[]
+  payments     Payment[]
 }
 
 model Task {
@@ -125,4 +126,19 @@ model SupportingFile {
   url          String
 
   @@index([submissionId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  streamId  String
+  amount    Float
+  token     String
+  from      String
+  to        String
+  txHash    String?
+  status    String   @default("Completed")
+  createdAt DateTime @default(now())
+
+  builderId String?
+  builder   User?   @relation(fields: [builderId], references: [id])
 }

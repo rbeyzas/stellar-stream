@@ -88,17 +88,10 @@ export default function WalletPage() {
 
       // 3. Merge and Sort
       // We prioritize DB transactions for withdrawals because they have better metadata
-      // Deduplicate based on hash if possible, but IDs might differ.
-      // Horizon IDs are long strings, DB IDs are UUIDs.
-      // Let's just combine them. If a payment appears in both (e.g. direct admin payment), it might show twice.
-      // However, stream withdrawals (contract calls) won't appear in Horizon payments list usually.
-      // Direct payments (create_account, payment op) WILL appear in Horizon.
-      // To avoid duplicates: If a DB payment has a hash that exists in Horizon txs, skip the Horizon one?
-      // Or skip the DB one? DB one has "Stream Withdrawal" context maybe?
-      // Actually, let's just show both for now or filter.
-      // A simple dedup on hash:
+      // Deduplicate based on hash if possible.
+      // We put horizonTxs FIRST, then dbTxs, so that dbTxs overwrite horizonTxs in the Map if keys match.
       
-      const allTxs = [...dbTxs, ...horizonTxs];
+      const allTxs = [...horizonTxs, ...dbTxs];
       const uniqueTxs = Array.from(new Map(allTxs.map(item => [item.hash || item.id, item])).values());
       
       // Sort by date desc

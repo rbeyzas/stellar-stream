@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, CheckCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -91,13 +92,13 @@ export default function ProfilePage() {
           location: updatedUser.location || '',
           twitter: updatedUser.twitter || '',
         });
-        alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
       } else {
-        alert('Failed to update profile');
+        toast.error('Failed to update profile');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Error updating profile');
+      toast.error('Error updating profile');
     } finally {
       setSaving(false);
     }

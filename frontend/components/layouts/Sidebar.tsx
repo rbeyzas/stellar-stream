@@ -76,12 +76,7 @@ const menuItems: MenuItem[] = [
     icon: FileText,
     roles: ['admin'],
   },
-  {
-    name: 'Payments',
-    href: '/admin/payments',
-    icon: DollarSign,
-    roles: ['admin'],
-  },
+
 
   // Builder menu items
   {

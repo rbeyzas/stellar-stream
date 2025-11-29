@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
 import * as StellarSdk from '@stellar/stellar-sdk';
+import { toast } from 'sonner';
 
 interface Builder {
   id: string;
@@ -161,19 +162,19 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
 
   const handleApprove = () => {
     if (!adminWalletAddress) {
-      alert('Please connect your wallet first to process payment');
+      toast.error('Please connect your wallet first to process payment');
       return;
     }
 
     if (!submission?.builder.walletAddress) {
-      alert(
+      toast.error(
         'Builder wallet address not found. Please ask builder to add wallet address in their profile.'
       );
       return;
     }
 
     if (!StellarSdk.StrKey.isValidEd25519PublicKey(submission.builder.walletAddress)) {
-      alert('Builder wallet address is invalid. Please ask builder to correct it.');
+      toast.error('Builder wallet address is invalid. Please ask builder to correct it.');
       return;
     }
 
@@ -187,7 +188,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
 
   const handleReject = async () => {
     if (!reviewNotes.trim()) {
-      alert('Please provide review notes before rejecting');
+      toast.error('Please provide review notes before rejecting');
       return;
     }
     
@@ -213,7 +214,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
 
   const handleRequestRevision = async () => {
     if (!reviewNotes.trim()) {
-      alert('Please provide feedback for revision');
+      toast.error('Please provide feedback for revision');
       return;
     }
     setIsSubmitting(true);

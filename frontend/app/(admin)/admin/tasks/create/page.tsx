@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { TaskType, TaskStatus, KPI } from '@/types/task';
+import { toast } from 'sonner';
 
 export default function CreateTaskPage() {
   const router = useRouter();
@@ -66,11 +67,11 @@ export default function CreateTaskPage() {
         router.push('/admin/tasks');
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}\nDetails: ${error.details || ''}`);
+        toast.error(`Error: ${error.error}${error.details ? '\n' + error.details : ''}`);
       }
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Failed to create task');
+      toast.error('Failed to create task');
     } finally {
       setIsSubmitting(false);
     }

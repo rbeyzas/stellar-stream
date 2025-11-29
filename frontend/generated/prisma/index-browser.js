@@ -201,6 +201,19 @@ exports.Prisma.SupportingFileScalarFieldEnum = {
   url: 'url'
 };
 
+exports.Prisma.PaymentScalarFieldEnum = {
+  id: 'id',
+  streamId: 'streamId',
+  amount: 'amount',
+  token: 'token',
+  from: 'from',
+  to: 'to',
+  txHash: 'txHash',
+  status: 'status',
+  createdAt: 'createdAt',
+  builderId: 'builderId'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -224,7 +237,8 @@ exports.Prisma.ModelName = {
   Application: 'Application',
   Submission: 'Submission',
   KPIResult: 'KPIResult',
-  SupportingFile: 'SupportingFile'
+  SupportingFile: 'SupportingFile',
+  Payment: 'Payment'
 };
 
 /**

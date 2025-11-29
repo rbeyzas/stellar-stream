@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { TaskType, TaskStatus, KPI } from '@/types/task';
+import { toast } from 'sonner';
 
 interface FormKPI {
   name: string;
@@ -94,11 +95,11 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
       if (res.ok) {
         router.push('/admin/tasks');
       } else {
-        alert('Failed to update task');
+        toast.error('Failed to update task');
       }
     } catch (error) {
       console.error('Error updating task:', error);
-      alert('Failed to update task');
+      toast.error('Failed to update task');
     } finally {
       setIsSubmitting(false);
     }

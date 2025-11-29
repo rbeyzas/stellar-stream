@@ -16,12 +16,14 @@ export const checkConnection = async () => {
   }
 };
 
+import { toast } from 'sonner';
+
 export const connectWallet = async () => {
   if (await isConnected()) {
     const { address } = await requestAccess();
     return address;
   } else {
-    alert("Please install Freighter Wallet extension");
+    toast.error("Please install Freighter Wallet extension");
     return null;
   }
 };
