@@ -53,12 +53,6 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
-    name: 'Campaigns',
-    href: '/admin/campaigns',
-    icon: Gift,
-    roles: ['admin'],
-  },
-  {
     name: 'Tasks',
     href: '/admin/tasks',
     icon: FileText,
